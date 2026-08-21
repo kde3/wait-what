@@ -6,7 +6,7 @@ export async function POST(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const nickname = String(body.nickname ?? '').trim().slice(0, 12);
   if (!nickname) {
-    return NextResponse.json({ error: '닉네임을 입력하세요.' }, { status: 400 });
+    return NextResponse.json({ error: 'errNickname' }, { status: 400 });
   }
   const result = joinRoom(code, nickname);
   if (result.error) {
