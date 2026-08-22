@@ -11,7 +11,7 @@ export default function QrInvite({ url }) {
     QRCode.toCanvas(canvasRef.current, url, {
       width: 180,
       margin: 1,
-      color: { dark: '#12121c', light: '#ffffff' },
+      color: { dark: '#0b1d51', light: '#ffffff' },
     }).catch(() => {});
   }, [url]);
 

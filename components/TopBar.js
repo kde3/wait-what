@@ -9,13 +9,13 @@ import { isMuted, setMuted, sfx, stopBgm } from '../lib/sound';
 export function Logo({ size = 28 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-      <rect x="6" y="4" width="36" height="56" rx="9" fill="#7c5cff" />
-      <rect x="11" y="11" width="26" height="36" rx="4" fill="#12121c" />
-      <circle cx="24" cy="53" r="3.5" fill="#12121c" opacity="0.6" />
-      <path d="M52 14c6 6 8 15 3 22L38 58l-8-8 22-19c-4-5-4-12 0-17z" fill="#ffd166" />
-      <circle cx="20" cy="20" r="4" fill="#ff6b81" />
-      <circle cx="30" cy="26" r="4" fill="#4cc9f0" />
-      <circle cx="20" cy="33" r="4" fill="#7bc043" />
+      <rect x="6" y="4" width="36" height="56" rx="9" fill="#725cad" />
+      <rect x="11" y="11" width="26" height="36" rx="4" fill="#060e28" />
+      <circle cx="24" cy="53" r="3.5" fill="#060e28" opacity="0.6" />
+      <path d="M52 14c6 6 8 15 3 22L38 58l-8-8 22-19c-4-5-4-12 0-17z" fill="#ffe3a9" />
+      <circle cx="20" cy="20" r="4" fill="#ff8fa3" />
+      <circle cx="30" cy="26" r="4" fill="#8ccdeb" />
+      <circle cx="20" cy="33" r="4" fill="#7fe3c0" />
     </svg>
   );
 }
