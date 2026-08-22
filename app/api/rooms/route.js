@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createRoom, listPublicRooms } from '../../../lib/store';
+import { touch, LOBBY } from '../../../lib/realtime';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,5 +19,6 @@ export async function POST(req) {
     isPublic: body.isPublic,
     lang: body.lang,
   });
+  touch(LOBBY);
   return NextResponse.json({ code: room.code, playerId });
 }

@@ -397,7 +397,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
           {group.entries.length > 0 && (
             <div className="history-strip">
               {group.entries.map((e, i) =>
-                e.url ? <img key={i} src={e.url} alt={e.nickname} title={`${e.nickname}: ${e.prompt ?? ''}`} /> : null,
+                e.url ? <img key={i} src={e.url} alt={e.nickname} title={e.nickname} /> : null,
               )}
             </div>
           )}

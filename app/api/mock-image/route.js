@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server';
 
-// 목업 이미지 생성기: 프롬프트 시드로 색/도형이 달라지는 SVG를 그린다.
+// 목업 이미지 생성기: 시드로 색/도형이 달라지는 SVG를 그린다.
 // 실제 이미지 생성 API 연동 전까지 전 모드를 플레이 가능하게 해주는 대체물.
+//
+// 프롬프트는 절대 받지도, 그리지도 않는다. 이 이미지는 다른 참가자에게 그대로 보이기 때문에
+// 프롬프트가 그림이나 URL에 남으면 정답이 새어 나간다.
 
 const PALETTES = [
-  ['#2b1e66', '#7c5cff', '#ffd166'],
-  ['#0f3d3e', '#34d1bf', '#f9f871'],
-  ['#4a1942', '#ff6b81', '#ffd6e0'],
-  ['#1b3a5c', '#4cc9f0', '#f72585'],
-  ['#3d2b1f', '#e07a5f', '#f2cc8f'],
-  ['#14213d', '#fca311', '#e5e5e5'],
-  ['#233d2c', '#7bc043', '#fdf498'],
-  ['#31263e', '#b388eb', '#8093f1'],
+  ['#0b1d51', '#725cad', '#ffe3a9'],
+  ['#0e2f4a', '#8ccdeb', '#ffe3a9'],
+  ['#2a1a4e', '#a07ccc', '#ffd9e8'],
+  ['#08283c', '#5fb7d4', '#cfeeff'],
+  ['#1e2a5e', '#7f8fd6', '#ffe3a9'],
+  ['#3a2352', '#c4a5ff', '#ffe9c4'],
+  ['#0c3340', '#7fe3c0', '#eafff4'],
+  ['#4a2c3f', '#ff8fa3', '#ffe3d0'],
 ];
 
 function mulberry(seed) {
@@ -24,37 +27,11 @@ function mulberry(seed) {
   };
 }
 
-function esc(s) {
-  return s.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-function wrapText(text, width) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = '';
-  for (const w of words) {
-    const candidate = line ? line + ' ' + w : w;
-    if (candidate.length > width && line) {
-      lines.push(line);
-      line = w;
-    } else if (candidate.length > width) {
-      // 공백 없는 긴 단어(한중일 문장)는 강제로 자른다
-      for (let i = 0; i < candidate.length; i += width) lines.push(candidate.slice(i, i + width));
-      line = '';
-    } else {
-      line = candidate;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.slice(0, 4);
-}
-
 export async function GET(req) {
   const sp = req.nextUrl.searchParams;
   const seed = (parseInt(sp.get('s') ?? '0', 10) || 0) + (parseInt(sp.get('n') ?? '0', 10) || 0);
-  const prompt = String(sp.get('p') ?? '').slice(0, 120);
   const rnd = mulberry(seed + 1);
-  const pal = PALETTES[seed % PALETTES.length];
+  const pal = PALETTES[Math.abs(seed) % PALETTES.length];
 
   let shapes = '';
   const shapeCount = 5 + Math.floor(rnd() * 5);
@@ -75,20 +52,12 @@ export async function GET(req) {
     }
   }
 
-  const lines = wrapText(prompt, 24);
-  const textY = 340 - (lines.length - 1) * 22;
-  const textEls = lines
-    .map((l, i) => `<text x="256" y="${textY + i * 22}" text-anchor="middle" font-family="sans-serif" font-size="17" font-weight="600" fill="#ffffff" opacity="0.92">${esc(l)}</text>`)
-    .join('');
-
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="384" viewBox="0 0 512 384">
 <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
 <stop offset="0" stop-color="${pal[0]}"/><stop offset="1" stop-color="${pal[1]}" stop-opacity="0.55"/>
 </linearGradient></defs>
 <rect width="512" height="384" fill="url(#bg)"/>
 ${shapes}
-<rect x="0" y="${textY - 28}" width="512" height="${384 - textY + 28}" fill="#000" opacity="0.35"/>
-${textEls}
 <text x="500" y="20" text-anchor="end" font-family="sans-serif" font-size="11" fill="#fff" opacity="0.45">AI MOCK</text>
 </svg>`;
 

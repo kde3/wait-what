@@ -13,6 +13,7 @@ import {
   CoopPlay,
   ImposterPlay,
 } from '../../../components/GamePlay';
+import { useRoomState } from '../../../components/useRealtime';
 import { sfx, startBgm, stopBgm } from '../../../lib/sound';
 
 const PLAY_COMPONENTS = {
@@ -29,7 +30,6 @@ export default function Room({ params }) {
   const { t } = useI18n();
   const [playerId, setPlayerId] = useState(null);
   const [checkedStorage, setCheckedStorage] = useState(false);
-  const [state, setState] = useState(null);
   const [error, setError] = useState('');
   const [nickname, setNickname] = useState('');
   const [busy, setBusy] = useState(false);
@@ -42,25 +42,12 @@ export default function Room({ params }) {
     setCheckedStorage(true);
   }, [code]);
 
-  const fetchState = useCallback(async () => {
-    const pid = sessionStorage.getItem(`gp_player_${code}`) ?? '';
-    try {
-      const res = await fetch(`/api/rooms/${code}/state?playerId=${pid}`);
-      if (!res.ok) {
-        setError(t('errRoomNotFound'));
-        return;
-      }
-      const data = await res.json();
-      setState(data);
-    } catch {}
-  }, [code, t]);
+  // 웹소켓으로 상태를 받고, 연결이 끊기면 훅이 알아서 폴링으로 버틴다.
+  const { state, live, gone, refresh: fetchState } = useRoomState(code, playerId, checkedStorage && !!playerId);
 
   useEffect(() => {
-    if (!checkedStorage || !playerId) return;
-    fetchState();
-    const timer = setInterval(fetchState, 1500);
-    return () => clearInterval(timer);
-  }, [checkedStorage, playerId, fetchState]);
+    if (gone) setError(t('errRoomNotFound'));
+  }, [gone, t]);
 
   // 상태 전환 효과음 + 배경음악
   useEffect(() => {
@@ -173,6 +160,8 @@ export default function Room({ params }) {
     <>
       <TopBar />
       <main className="container wide">
+        {!live && <div className="conn-warning">{t('reconnecting')}</div>}
+
         {state.status === 'lobby' && (
           <Lobby state={state} playerId={playerId} api={api} busy={busy} error={error} onStarted={fetchState} />
         )}

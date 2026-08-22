@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '../components/I18nProvider';
 import TopBar from '../components/TopBar';
+import { useLobbyRooms } from '../components/useRealtime';
 import { sfx } from '../lib/sound';
 
 const MODE_KEY = {
@@ -22,7 +23,7 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [publicRooms, setPublicRooms] = useState([]);
+  const { rooms: publicRooms } = useLobbyRooms(); // 웹소켓 푸시, 실패 시 폴링 폴백
   const [showCreate, setShowCreate] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [isPublic, setIsPublic] = useState(true);
@@ -30,22 +31,6 @@ export default function Home() {
   useEffect(() => {
     setNickname(window.localStorage.getItem('gp_nickname') ?? '');
   }, []);
-
-  const fetchRooms = useCallback(async () => {
-    try {
-      const res = await fetch('/api/rooms');
-      if (res.ok) {
-        const data = await res.json();
-        setPublicRooms(data.rooms ?? []);
-      }
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    fetchRooms();
-    const timer = setInterval(fetchRooms, 4000);
-    return () => clearInterval(timer);
-  }, [fetchRooms]);
 
   function saveNickname(v) {
     setNickname(v);
