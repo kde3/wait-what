@@ -16,7 +16,7 @@ import {
   unsubmitAction,
 } from './lib/store.js';
 import { buildState } from './lib/serialize.js';
-import { LOBBY, touch } from './lib/realtime.js';
+import { getActiveRoomPlayerCounts, LOBBY, touch } from './lib/realtime.js';
 
 export const apiRouter = Router();
 
@@ -26,14 +26,14 @@ const roomOr404 = (req, res) => {
   return room;
 };
 
-apiRouter.get('/rooms', (_req, res) => res.json({ rooms: listPublicRooms() }));
+apiRouter.get('/rooms', (_req, res) => res.json({ rooms: listPublicRooms(getActiveRoomPlayerCounts()) }));
 
 apiRouter.post('/rooms', (req, res) => {
   const nickname = String(req.body?.nickname ?? '').trim().slice(0, 12);
   if (!nickname) return res.status(400).json({ error: 'errNickname' });
   const { room, playerId } = createRoom(nickname, {
     name: req.body?.roomName,
-    isPublic: req.body?.isPublic,
+    password: req.body?.password,
     lang: req.body?.lang,
   });
   touch(LOBBY);
@@ -43,7 +43,7 @@ apiRouter.post('/rooms', (req, res) => {
 apiRouter.post('/rooms/:code/join', (req, res) => {
   const nickname = String(req.body?.nickname ?? '').trim().slice(0, 12);
   if (!nickname) return res.status(400).json({ error: 'errNickname' });
-  const result = joinRoom(req.params.code, nickname);
+  const result = joinRoom(req.params.code, nickname, req.body?.password);
   if (result.error) return res.status(400).json({ error: result.error });
   touch(result.room.code);
   touch(LOBBY);

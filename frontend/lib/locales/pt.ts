@@ -154,6 +154,7 @@ export const dict = {
   authorPhrase: ' — frase',
   authorImage: ' — desenho da IA',
   notSubmitted: '(não enviado)',
+  emptyValue: 'Valor vazio',
   aiC1: 'Hmm… pontos pelo esforço!',
   aiC2: 'Nada mal, hein?',
   aiC3: 'Uma obra maravilhosa!',

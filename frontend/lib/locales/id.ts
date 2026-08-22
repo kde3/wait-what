@@ -154,6 +154,7 @@ export const dict = {
   authorPhrase: ' — kata kuncinya',
   authorImage: ' — gambar AI-nya',
   notSubmitted: '(tidak dikirim)',
+  emptyValue: 'Nilai kosong',
   aiC1: 'Hmm… usahanya patut dihargai!',
   aiC2: 'Lumayan banget!',
   aiC3: 'Karya yang keren!',

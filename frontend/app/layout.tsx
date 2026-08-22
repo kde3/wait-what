@@ -1,14 +1,5 @@
 import './globals.css';
-import localFont from 'next/font/local';
-import { I18nProvider } from '../components/I18nProvider';
-
-const pretendard = localFont({
-  src: './assets/fonts/Pretendard/PretendardVariable.woff2',
-  variable: '--font-pretendard',
-  weight: '100 900',
-  style: 'normal',
-  display: 'swap',
-});
+import { I18nProvider } from '../components/i18n-provider';
 
 export const metadata = {
   title: 'AI 갈틱폰',
@@ -18,7 +9,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <body className={pretendard.variable}>
+      <body>
         <I18nProvider>{children}</I18nProvider>
       </body>
     </html>

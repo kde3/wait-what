@@ -1,11 +1,32 @@
 // WebAudio 기반 효과음/배경음악 — 오디오 파일 없이 런타임 합성한다.
 let ctx = null;
 let mutedCache = null;
-let bgmTimer = null;
+let bgmAudio: HTMLAudioElement | null = null;
+let desiredBgm: 'lobby' | 'play' | null = null;
+let bgmResumeArmed = false;
+
+const BGM_SOURCES = {
+  lobby: '/sounds/bgm/lobby.mp3',
+  play: '/sounds/bgm/play.mp3',
+} as const;
+
+function armBgmResume() {
+  if (bgmResumeArmed || typeof window === 'undefined') return;
+  bgmResumeArmed = true;
+  const resume = () => {
+    bgmResumeArmed = false;
+    window.removeEventListener('pointerdown', resume);
+    window.removeEventListener('keydown', resume);
+    if (desiredBgm && !isMuted()) playBgm(desiredBgm);
+  };
+  window.addEventListener('pointerdown', resume, { once: true });
+  window.addEventListener('keydown', resume, { once: true });
+}
 
 export function isMuted() {
   if (mutedCache === null) {
-    mutedCache = typeof window !== 'undefined' && window.localStorage.getItem('gp_muted') === '1';
+    if (typeof window !== 'undefined') window.localStorage.removeItem('gp_muted');
+    mutedCache = typeof window !== 'undefined' && window.sessionStorage.getItem('gp_muted') === '1';
   }
   return mutedCache;
 }
@@ -13,9 +34,13 @@ export function isMuted() {
 export function setMuted(m) {
   mutedCache = !!m;
   try {
-    window.localStorage.setItem('gp_muted', m ? '1' : '0');
+    window.sessionStorage.setItem('gp_muted', m ? '1' : '0');
   } catch {}
-  if (m) stopBgm();
+  if (m) {
+    bgmAudio?.pause();
+  } else if (desiredBgm) {
+    playBgm(desiredBgm);
+  }
 }
 
 function ac() {
@@ -65,19 +90,28 @@ export const sfx = {
   win: () => [523, 659, 784, 659, 1047, 1319].forEach((f, i) => tone(f, 0.15, 'triangle', 0.12, i * 0.11)),
 };
 
-// 잔잔한 생성형 배경음악 (펜타토닉 랜덤 노트)
+export function playBgm(track: 'lobby' | 'play') {
+  desiredBgm = track;
+  if (typeof window === 'undefined' || isMuted()) return;
+
+  const source = BGM_SOURCES[track];
+  bgmAudio ??= new Audio();
+  if (!bgmAudio.src.endsWith(source)) {
+    bgmAudio.src = source;
+    bgmAudio.currentTime = 0;
+  }
+  bgmAudio.loop = true;
+  bgmAudio.volume = 0.3;
+  void bgmAudio.play().catch(armBgmResume);
+}
+
 export function startBgm() {
-  if (isMuted() || bgmTimer || !ac()) return;
-  const notes = [262, 294, 330, 392, 440, 523, 587];
-  bgmTimer = setInterval(() => {
-    if (isMuted()) return;
-    const f = notes[Math.floor(Math.random() * notes.length)];
-    tone(f, 1.8, 'sine', 0.02);
-    tone(f / 2, 1.8, 'sine', 0.015);
-  }, 1500);
+  playBgm('play');
 }
 
 export function stopBgm() {
-  if (bgmTimer) clearInterval(bgmTimer);
-  bgmTimer = null;
+  desiredBgm = null;
+  if (!bgmAudio) return;
+  bgmAudio.pause();
+  bgmAudio.currentTime = 0;
 }

@@ -1,4 +1,5 @@
 // 인메모리 게임 상태 저장소 (MVP용 — 서버 재시작 시 초기화됨)
+import { createHash } from 'node:crypto';
 import { WORDS } from './words';
 import { LANGS } from './langs';
 
@@ -7,6 +8,8 @@ const rooms = globalThis.__gpRooms ?? (globalThis.__gpRooms = new Map());
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const REVEAL_MS = 6000; // 라운드 결과 공개 시간
 const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
+const DEFAULT_CLASSIC_PHRASE = '우주복을 입은 고양이가 라면을 먹는 모습';
+const hashPassword = (password) => createHash('sha256').update(String(password)).digest('hex');
 
 export const MODES = ['classic', 'speed', 'speed_team', 'relay', 'coop', 'imposter'];
 
@@ -14,7 +17,6 @@ export const DEFAULT_OPTIONS = {
   textSeconds: 45, // 제시어 작성/맞히기 제한시간
   imageSeconds: 90, // 그림(프롬프트+생성) 제한시간
   rounds: 5, // 스피드 퀴즈 라운드 수
-  bannedWords: '', // 패널티: 프롬프트 금지 단어 (쉼표 구분)
   teamMode: false, // 개인전/팀전 (speed, relay, coop)
   fixedDrawer: false, // 스피드 퀴즈: 고정된 대표 한 명(방장)이 계속 그림
   scored: true, // relay/coop: AI 평가 여부
@@ -58,7 +60,7 @@ export function wordMatches(word, guess) {
   return Object.values(word).some((v) => normalizeText(v) === g);
 }
 
-// 패널티 검사: 금지 단어 또는 (비밀 키워드가 있는 모드에서) 키워드 자체가 프롬프트에 포함되면 반려
+// 비밀 키워드가 있는 모드에서는 키워드 자체가 프롬프트에 포함되면 반려
 export function promptViolation(room, prompt, keyword) {
   const p = normalizeText(prompt);
   if (keyword) {
@@ -66,13 +68,6 @@ export function promptViolation(room, prompt, keyword) {
       const v = normalizeText(raw);
       if (v && p.includes(v)) return raw;
     }
-  }
-  const banned = String(room.options.bannedWords ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const b of banned) {
-    if (p.includes(normalizeText(b))) return b;
   }
   return null;
 }
@@ -86,7 +81,7 @@ export function mockAiScore(seed) {
 
 // ── 방 관리 ─────────────────────────────────────────────
 
-export function createRoom(nickname, { name, isPublic, lang }: Record<string, any> = {}) {
+export function createRoom(nickname, { name, password, lang }: Record<string, any> = {}) {
   pruneRooms();
   let code;
   do {
@@ -94,10 +89,12 @@ export function createRoom(nickname, { name, isPublic, lang }: Record<string, an
   } while (rooms.has(code));
 
   const hostId = randomId();
+  const cleanPassword = String(password ?? '').slice(0, 32);
   const room = {
     code,
     name: String(name ?? '').trim().slice(0, 30) || `${nickname}`,
-    isPublic: !!isPublic,
+    isPublic: !cleanPassword,
+    passwordHash: cleanPassword ? hashPassword(cleanPassword) : '',
     lang: LANGS.includes(lang) ? lang : 'ko',
     status: 'lobby', // lobby | playing | finished
     mode: 'classic',
@@ -121,10 +118,14 @@ export function getRoom(code) {
   return rooms.get(String(code).toUpperCase()) ?? null;
 }
 
-export function listPublicRooms() {
+export function deleteRoom(code) {
+  return rooms.delete(String(code).toUpperCase());
+}
+
+export function listPublicRooms(activePlayerCounts: Map<string, number>) {
   pruneRooms();
   return [...rooms.values()]
-    .filter((r) => r.isPublic)
+    .filter((r) => r.isPublic && (activePlayerCounts.get(r.code) ?? 0) > 0)
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 30)
     .map((r) => ({
@@ -132,13 +133,14 @@ export function listPublicRooms() {
       name: r.name,
       mode: r.mode,
       status: r.status,
-      players: r.players.length,
+      players: activePlayerCounts.get(r.code) ?? 0,
     }));
 }
 
-export function joinRoom(code, nickname) {
+export function joinRoom(code, nickname, password = '') {
   const room = getRoom(code);
   if (!room) return { error: 'errRoomNotFound' };
+  if (room.passwordHash && room.passwordHash !== hashPassword(password ?? '')) return { error: 'errWrongPassword' };
   if (room.status !== 'lobby') return { error: 'errAlreadyStarted' };
   if (room.players.length >= 10) return { error: 'errRoomFull' };
 
@@ -186,7 +188,6 @@ export function configRoom(room, playerId, patch: Record<string, any> = {}) {
     if (o.textSeconds !== undefined) opt.textSeconds = clampInt(o.textSeconds, 15, 300, opt.textSeconds);
     if (o.imageSeconds !== undefined) opt.imageSeconds = clampInt(o.imageSeconds, 30, 600, opt.imageSeconds);
     if (o.rounds !== undefined) opt.rounds = clampInt(o.rounds, 1, 20, opt.rounds);
-    if (o.bannedWords !== undefined) opt.bannedWords = String(o.bannedWords).slice(0, 200);
     if (o.teamMode !== undefined) opt.teamMode = !!o.teamMode;
     if (o.fixedDrawer !== undefined) opt.fixedDrawer = !!o.fixedDrawer;
     if (o.scored !== undefined) opt.scored = !!o.scored;
@@ -284,7 +285,9 @@ function advClassic(room) {
     const j = classicChainIndex(room, p.id);
     const sub = g.submissions.get(p.id) ?? {};
     if (type === 'text') {
-      g.chains[j].push({ type: 'text', text: (sub.text ?? '').trim() || '···', authorId: p.id, authorNickname: p.nickname });
+      const submittedText = (sub.text ?? '').trim();
+      const text = submittedText || (g.round === 0 ? DEFAULT_CLASSIC_PHRASE : '');
+      g.chains[j].push({ type: 'text', text, authorId: p.id, authorNickname: p.nickname });
     } else {
       g.chains[j].push({ type: 'image', url: sub.url ?? null, prompt: (sub.prompt ?? '').trim(), authorId: p.id, authorNickname: p.nickname });
     }

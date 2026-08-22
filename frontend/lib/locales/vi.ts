@@ -154,6 +154,7 @@ export const dict = {
   authorPhrase: ' — từ khóa',
   authorImage: ' — tranh AI',
   notSubmitted: '(chưa nộp)',
+  emptyValue: 'Giá trị trống',
   aiC1: 'Ừm… ghi nhận sự cố gắng nhé!',
   aiC2: 'Cũng ra gì đấy chứ!',
   aiC3: 'Một tác phẩm tuyệt vời!',

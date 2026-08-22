@@ -154,6 +154,7 @@ export const dict = {
   authorPhrase: 's Begriff',
   authorImage: 's KI-Bild',
   notSubmitted: '(nicht abgegeben)',
+  emptyValue: 'Leerer Wert',
   aiC1: 'Hmm… Punkte für die Mühe!',
   aiC2: 'Gar nicht schlecht!',
   aiC3: 'Ein wunderbares Werk!',

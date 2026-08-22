@@ -154,6 +154,7 @@ export const dict = {
   authorPhrase: ' — задание',
   authorImage: ' — рисунок ИИ',
   notSubmitted: '(не отправлено)',
+  emptyValue: 'Пустое значение',
   aiC1: 'Хм… старание засчитано!',
   aiC2: 'А очень даже неплохо!',
   aiC3: 'Отличная работа!',

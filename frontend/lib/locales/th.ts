@@ -154,6 +154,7 @@ export const dict = {
   authorPhrase: ' — คำใบ้',
   authorImage: ' — ภาพ AI',
   notSubmitted: '(ไม่ได้ส่ง)',
+  emptyValue: 'ค่าว่าง',
   aiC1: 'อืม… ขอชมความพยายามละกัน!',
   aiC2: 'ไม่เลวเลยนะเนี่ย!',
   aiC3: 'ผลงานยอดเยี่ยมมาก!',

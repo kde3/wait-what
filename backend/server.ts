@@ -5,6 +5,8 @@ import express from 'express';
 import next from 'next';
 import { WebSocket, WebSocketServer } from 'ws';
 import { apiRouter } from './routes.js';
+import { deleteRoom } from './lib/store.js';
+import { LOBBY, touch } from './lib/realtime.js';
 
 const backendDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendDir = path.resolve(backendDir, '../frontend');
@@ -15,6 +17,7 @@ type GameSocket = WebSocket & { gpCode?: string; gpPlayerId?: string; gpAlive?: 
 
 const sockets: Map<string, Set<GameSocket>> = globalThis.__gpSockets ?? (globalThis.__gpSockets = new Map());
 const dirty: Set<string> = globalThis.__gpDirty ?? (globalThis.__gpDirty = new Set());
+const emptyRoomTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let server;
 
 async function main() {
@@ -48,12 +51,27 @@ async function main() {
     const roomSockets = sockets.get(code) ?? new Set();
     sockets.set(code, roomSockets);
     roomSockets.add(ws);
+    touch(LOBBY);
+    const pendingRemoval = emptyRoomTimers.get(code);
+    if (pendingRemoval) {
+      clearTimeout(pendingRemoval);
+      emptyRoomTimers.delete(code);
+    }
     dirty.add(code);
     ws.on('pong', () => { ws.gpAlive = true; });
     ws.on('error', () => {});
     ws.on('close', () => {
       roomSockets.delete(ws);
-      if (!roomSockets.size) sockets.delete(code);
+      touch(LOBBY);
+      if (!roomSockets.size) {
+        sockets.delete(code);
+        const timer = setTimeout(() => {
+          emptyRoomTimers.delete(code);
+          if (sockets.get(code)?.size) return;
+          if (deleteRoom(code)) touch(LOBBY);
+        }, 5_000);
+        emptyRoomTimers.set(code, timer);
+      }
     });
   });
   });

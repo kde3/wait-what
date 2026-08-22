@@ -12,6 +12,28 @@ const TICK_MS = 250;
 const sockets = () => globalThis.__gpSockets ?? (globalThis.__gpSockets = new Map());
 const dirty = () => globalThis.__gpDirty ?? (globalThis.__gpDirty = new Set());
 
+export function getActiveRoomPlayerCounts() {
+  const counts = new Map<string, number>();
+
+  for (const [code, roomSockets] of sockets()) {
+    if (code === LOBBY) continue;
+    const room = getRoom(code);
+    if (!room) continue;
+    const roomPlayerIds = new Set(room.players.map((player) => player.id));
+    const activePlayerIds = new Set<string>();
+
+    for (const socket of roomSockets) {
+      if (socket.readyState === 1 && socket.gpPlayerId && roomPlayerIds.has(socket.gpPlayerId)) {
+        activePlayerIds.add(socket.gpPlayerId);
+      }
+    }
+
+    if (activePlayerIds.size) counts.set(code, activePlayerIds.size);
+  }
+
+  return counts;
+}
+
 // 상태를 바꾼 쪽에서 호출 — 다음 틱에 해당 채널로 밀어준다.
 export function touch(code) {
   dirty().add(String(code).toUpperCase());
@@ -31,7 +53,7 @@ export function broadcast(code) {
   if (!set?.size) return;
 
   if (key === LOBBY) {
-    const payload = JSON.stringify({ type: 'lobby', rooms: listPublicRooms() });
+    const payload = JSON.stringify({ type: 'lobby', rooms: listPublicRooms(getActiveRoomPlayerCounts()) });
     for (const ws of set) send(ws, payload);
     return;
   }
