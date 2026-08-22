@@ -1,0 +1,28 @@
+import './globals.css';
+import localFont from 'next/font/local';
+import { I18nProvider } from '../components/I18nProvider';
+
+const pretendard = localFont({
+  src: './assets/fonts/Pretendard/PretendardVariable.woff2',
+  variable: '--font-pretendard',
+  weight: '100 900',
+  style: 'normal',
+  display: 'swap',
+});
+
+export const metadata = {
+  title: 'AI 갈틱폰',
+  description: 'AI 그림으로 즐기는 파티 게임 — 릴레이, 스피드 퀴즈, 임포스터까지',
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="ko">
+      <body className={pretendard.variable}>
+        <I18nProvider>{children}</I18nProvider>
+      </body>
+    </html>
+  );
+}
+
+

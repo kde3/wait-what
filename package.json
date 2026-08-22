@@ -2,15 +2,31 @@
   "name": "galticpon",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "build": "next build",
-    "start": "node server.js --prod"
+    "dev": "tsx backend/server.ts",
+    "build": "next build frontend",
+    "start": "tsx backend/server.ts --prod",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p frontend/tsconfig.json"
   },
   "dependencies": {
+    "@heroui/react": "^3.2.4",
+    "@heroui/styles": "^3.2.4",
+    "express": "^5.2.1",
     "next": "^15.4.0",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.2.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/ws": "^8.18.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.12",
+    "typescript": "^6.0.3"
   }
 }

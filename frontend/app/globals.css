@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@theme inline {
+  --font-heading: var(--font-pretendard);
+  --font-sans: var(--font-pretendard);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-pretendard), sans-serif;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    @apply bg-surface text-foreground;
+  }
+}
+
+/* Reserved brand palette. It is intentionally not mapped to the active HeroUI theme. */
+:root {
+  --palette-green-500: #6abf7c; --palette-green-600: #4fa463; --palette-green-550: #56b26b; --palette-green-700: #3f9455; --palette-green-900: #2f6b45;
+  --palette-surface-page: #f7fcf7; --palette-surface-tint: #e4f3e7; --palette-surface-card: #ffffff; --palette-surface-soft: #f5faf5; --palette-surface-muted: #eef8f0;
+  --palette-border-subtle: #dfeee1; --palette-border-soft: #e4f0e6; --palette-border-accent-soft: #cde9d4; --palette-border-accent: #7fc98f;
+  --palette-control-surface: #eaf3ec; --palette-control-hover: #dcebde; --palette-control-pressed: #d3e2d7; --palette-control-tint: #e1efe4; --palette-control-active: #7bc98c; --palette-control-disabled: #f2f5f3; --palette-control-foreground: #2f7a42;
+  --palette-text-primary: #234634; --palette-text-secondary: #4a6b58; --palette-text-muted: #86a392; --palette-text-disabled: #a9bfb2;
+  --palette-point-lime: #dcec63; --palette-point-lime-strong: #c2dc44; --palette-point-foreground: #3c5c22; --palette-rank-gold: #f7c948; --palette-rank-silver: #bfcbd4; --palette-rank-bronze: #e3a063; --palette-state-orange: #e0844a;
+  --palette-mascot-green-light: #8fd69c; --palette-mascot-leaf-light: #b5e3a9; --palette-mascot-yellow: #f7dc6b; --palette-mascot-pink: #f5a9b8; --palette-mascot-blue: #8fc7e8; --palette-mascot-green: #5fb673; --palette-mascot-leaf: #8ccb80; --palette-mascot-pink-dark: #e28fa1; --palette-mascot-blue-dark: #6baad0; --palette-mascot-ink: #2f5040;
+  --palette-illustration-sky: #e4f3fa; --palette-illustration-green-light: #c6e6cc; --palette-illustration-green: #a9d9b4; --palette-illustration-leaf: #6fa34e; --palette-illustration-lime: #cbe092;
+}
