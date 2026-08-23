@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/react-vite';
-import { I18nProvider } from '../frontend/components/i18n-provider';
-import '../frontend/app/globals.css';
+import { I18nProvider } from '../components/i18n-provider';
+import '../app/globals.css';
 
 const preview: Preview = {
   decorators: [

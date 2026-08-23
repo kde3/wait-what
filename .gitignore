@@ -1,4 +1,4 @@
-.codex
+.ai
 
 ### NextJS ###
 # dependencies
@@ -16,6 +16,7 @@
 # production
 /build
 /storybook-static/
+frontend/storybook-static/
 
 # misc
 .DS_Store
@@ -27,8 +28,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# local env files
-.env*.local
+# env files
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel

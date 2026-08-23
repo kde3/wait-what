@@ -1,14 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiUrl, websocketUrl } from '../lib/backend-url';
 
 const LOBBY = '@LOBBY';
-
-function wsUrl(channel, playerId) {
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const params = new URLSearchParams({ code: channel, playerId: playerId ?? '' });
-  return `${proto}//${window.location.host}/ws?${params}`;
-}
 
 // 웹소켓으로 채널을 구독하고, 연결이 안 되거나 끊기면 폴링으로 자동 폴백한다.
 // onMessage는 ref로 잡아두어 콜백이 바뀌어도 재연결하지 않는다.
@@ -45,7 +40,7 @@ function useChannel(channel, playerId, { onMessage, poll, pollMs, enabled }) {
     const connect = () => {
       if (closed) return;
       try {
-        socket = new WebSocket(wsUrl(channel, playerId));
+        socket = new WebSocket(websocketUrl(channel, playerId));
       } catch {
         startPolling();
         return;
@@ -103,7 +98,7 @@ export function useRoomState(code, playerId, enabled) {
   const fetchState = useCallback(async () => {
     if (!code) return;
     try {
-      const res = await fetch(`/api/rooms/${code}/state?playerId=${encodeURIComponent(playerId ?? '')}`);
+      const res = await fetch(apiUrl(`/api/rooms/${code}/state?playerId=${encodeURIComponent(playerId ?? '')}`));
       if (!res.ok) {
         if (res.status === 404) setGone(true);
         return;
@@ -132,7 +127,7 @@ export function useLobbyRooms() {
 
   const fetchRooms = useCallback(async () => {
     try {
-      const res = await fetch('/api/rooms');
+      const res = await fetch(apiUrl('/api/rooms'));
       if (res.ok) setRooms((await res.json()).rooms ?? []);
     } catch {}
   }, []);

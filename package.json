@@ -1,41 +1,14 @@
 {
-  "name": "galticpon",
+  "name": "ai-garticphone",
   "private": true,
   "scripts": {
-    "dev": "tsx backend/server.ts",
-    "build": "next build frontend",
-    "start": "tsx backend/server.ts --prod",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p frontend/tsconfig.json",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
-  },
-  "dependencies": {
-    "@gravity-ui/icons": "^2.21.0",
-    "@heroui/react": "^3.2.4",
-    "@heroui/styles": "^3.2.4",
-    "express": "^5.2.1",
-    "next": "^15.4.0",
-    "next-themes": "^0.4.6",
-    "qrcode": "^1.5.4",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwind-merge": "^3.6.0",
-    "ws": "^8.21.3"
-  },
-  "devDependencies": {
-    "@storybook/addon-a11y": "^10.5.10",
-    "@storybook/nextjs-vite": "^10.5.10",
-    "@tailwindcss/postcss": "^4.3.3",
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/express": "^5.0.6",
-    "@types/node": "^26.2.0",
-    "@types/qrcode": "^1.5.6",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@types/ws": "^8.18.1",
-    "storybook": "^10.5.10",
-    "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.12",
-    "typescript": "^6.0.3"
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "start:frontend": "npm --prefix frontend run start",
+    "start:backend": "npm --prefix backend run start",
+    "typecheck": "npm --prefix frontend run typecheck && npm --prefix backend run typecheck",
+    "storybook": "npm --prefix frontend run storybook",
+    "build-storybook": "npm --prefix frontend run build-storybook"
   }
 }

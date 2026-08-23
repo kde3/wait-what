@@ -6,6 +6,7 @@ import { useI18n } from '../i18n-provider';
 import TopBar from '../layout/top-bar';
 import { useLobbyRooms } from '../../hooks/use-realtime';
 import { playBgm, sfx } from '../../lib/sound';
+import { apiUrl } from '../../lib/backend-url';
 import { Button, Card, FieldError, Input, Label, Modal, Radio, RadioGroup, TextField, toast } from '@heroui/react';
 import { ProfileSetup } from '../ui/profile-setup';
 
@@ -85,7 +86,7 @@ export default function HomePageView() {
     setBusy(true);
     setError('');
     sfx.click();
-    const res = await fetch('/api/rooms', {
+    const res = await fetch(apiUrl('/api/rooms'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -117,7 +118,7 @@ export default function HomePageView() {
     setBusy(true);
     setError('');
     sfx.click();
-    const res = await fetch(`/api/rooms/${code}/join`, {
+    const res = await fetch(apiUrl(`/api/rooms/${code}/join`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nickname }),
@@ -217,9 +218,7 @@ export default function HomePageView() {
 
         {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
 
-
-        <Modal>
-          <Modal.Backdrop isOpen={showCreate} onOpenChange={setShowCreate}>
+        <Modal.Backdrop isOpen={showCreate} onOpenChange={setShowCreate}>
             <Modal.Container size="sm" placement="center">
               <Modal.Dialog>
               <Modal.Header><Modal.Heading>{t('createRoomTitle')}</Modal.Heading></Modal.Header>
@@ -285,8 +284,7 @@ export default function HomePageView() {
               </Modal.Footer>
               </Modal.Dialog>
             </Modal.Container>
-          </Modal.Backdrop>
-        </Modal>
+        </Modal.Backdrop>
       </main>
     </>
   );

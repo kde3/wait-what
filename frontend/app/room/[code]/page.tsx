@@ -7,6 +7,7 @@ import TopBar from '../../../components/layout/top-bar';
 import { RoomPageView } from '../../../components/pages/room-page-view';
 import { useRoomState } from '../../../hooks/use-realtime';
 import { playBgm, sfx, stopBgm } from '../../../lib/sound';
+import { apiUrl } from '../../../lib/backend-url';
 import { Button, Input, Label, TextField, toast } from '@heroui/react';
 import { ProfileSetup } from '../../../components/ui/profile-setup';
 
@@ -63,7 +64,7 @@ export default function Room({ params }: any) {
       setBusy(true);
       setError('');
       try {
-        const res = await fetch(`/api/rooms/${code}/${path}`, {
+        const res = await fetch(apiUrl(`/api/rooms/${code}/${path}`), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

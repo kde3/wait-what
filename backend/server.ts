@@ -1,18 +1,17 @@
 import { createServer } from 'node:http';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import express from 'express';
-import next from 'next';
 import { WebSocket, WebSocketServer } from 'ws';
 import { apiRouter } from './routes.js';
 import { deleteRoom } from './lib/store.js';
 import { LOBBY, touch } from './lib/realtime.js';
 
-const backendDir = path.dirname(fileURLToPath(import.meta.url));
-const frontendDir = path.resolve(backendDir, '../frontend');
-const dev = !process.argv.includes('--prod') && process.env.NODE_ENV !== 'production';
 const port = Number.parseInt(process.env.PORT || '3000', 10);
-const hostname = process.env.HOSTNAME || undefined;
+// HOSTNAME은 Git Bash와 컨테이너 런타임이 제멋대로 채우므로 쓰지 않는다. 미지정 시 전 인터페이스(IPv4+IPv6) 바인딩.
+const hostname = process.env.HOST || undefined;
+const allowedOrigins = (process.env.CORS_ORIGIN ?? '')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 type GameSocket = WebSocket & { gpCode?: string; gpPlayerId?: string; gpAlive?: boolean };
 
 const sockets: Map<string, Set<GameSocket>> = globalThis.__gpSockets ?? (globalThis.__gpSockets = new Map());
@@ -21,24 +20,32 @@ const emptyRoomTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let server;
 
 async function main() {
-  const nextApp = next({ dev, dir: frontendDir });
-  await nextApp.prepare();
-
   const expressApp = express();
   expressApp.disable('x-powered-by');
+  expressApp.use((req, res, nextMiddleware) => {
+    const origin = req.headers.origin?.replace(/\/+$/, '');
+    const allowAnyOrigin = allowedOrigins.includes('*');
+    if (origin && (allowAnyOrigin || allowedOrigins.includes(origin))) {
+      res.setHeader('Access-Control-Allow-Origin', allowAnyOrigin ? '*' : origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    nextMiddleware();
+  });
   expressApp.use(express.json({ limit: '32kb' }));
+  expressApp.get('/health', (_req, res) => res.status(200).json({ ok: true }));
   expressApp.use('/api', apiRouter);
-  expressApp.use((req, res) => nextApp.getRequestHandler()(req, res));
+  expressApp.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
   server = createServer(expressApp);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
-  const nextUpgrade = typeof nextApp.getUpgradeHandler === 'function' ? nextApp.getUpgradeHandler() : null;
 
   server.on('upgrade', (req, socket, head) => {
-  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+  const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'internal'}`);
   if (url.pathname !== '/ws') {
-    if (nextUpgrade) nextUpgrade(req, socket, head);
-    else socket.destroy();
+    socket.destroy();
     return;
   }
   wss.handleUpgrade(req, socket, head, (rawSocket) => {
@@ -85,7 +92,7 @@ const heartbeat = setInterval(() => {
 heartbeat.unref?.();
 
   server.listen(port, hostname, () => {
-    console.log(`> Express ready on http://localhost:${port} (Next frontend, ws: /ws, ${dev ? 'dev' : 'production'})`);
+    console.log(`> Express ready on ${hostname ?? '0.0.0.0'}:${port} (ws: /ws)`);
   });
 }
 

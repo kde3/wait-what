@@ -7,7 +7,7 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   args: {
     code: 'PLAY',
-    url: 'http://localhost:3000/room/PLAY',
+    url: 'https://example.com/room/PLAY',
     isOpen: true,
     copied: false,
     onOpenChange: () => undefined,

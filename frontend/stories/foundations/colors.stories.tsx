@@ -1,92 +1,118 @@
+import { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-
-interface ColorToken {
-  name: string;
-  value: string;
-}
 
 interface ColorGroup {
   title: string;
-  colors: ColorToken[];
+  tokens: string[];
 }
 
 const groups: ColorGroup[] = [
   {
     title: '브랜드 그린',
-    colors: [
-      { name: '--palette-green-500', value: '#6ABF7C' },
-      { name: '--palette-green-600', value: '#4FA463' },
-      { name: '--palette-green-550', value: '#56B26B' },
-      { name: '--palette-green-700', value: '#3F9455' },
-      { name: '--palette-green-900', value: '#2F6B45' },
+    tokens: [
+      '--palette-green-500',
+      '--palette-green-600',
+      '--palette-green-550',
+      '--palette-green-700',
+      '--palette-green-900',
     ],
   },
   {
     title: '배경 · 서피스',
-    colors: [
-      { name: '--palette-surface-page', value: '#F7FCF7' },
-      { name: '--palette-surface-tint', value: '#E4F3E7' },
-      { name: '--palette-surface-card', value: '#FFFFFF' },
-      { name: '--palette-surface-soft', value: '#F5FAF5' },
-      { name: '--palette-surface-muted', value: '#EEF8F0' },
+    tokens: [
+      '--palette-surface-page',
+      '--palette-surface-tint',
+      '--palette-surface-card',
+      '--palette-surface-soft',
+      '--palette-surface-muted',
     ],
   },
   {
     title: '보더',
-    colors: [
-      { name: '--palette-border-subtle', value: '#DFEEE1' },
-      { name: '--palette-border-soft', value: '#E4F0E6' },
-      { name: '--palette-border-accent-soft', value: '#CDE9D4' },
-      { name: '--palette-border-accent', value: '#7FC98F' },
+    tokens: [
+      '--palette-border-subtle',
+      '--palette-border-soft',
+      '--palette-border-accent-soft',
+      '--palette-border-accent',
     ],
   },
   {
     title: '보조 서피스 · 컨트롤',
-    colors: [
-      { name: '--palette-control-surface', value: '#EAF3EC' },
-      { name: '--palette-control-hover', value: '#DCEBDE' },
-      { name: '--palette-control-pressed', value: '#D3E2D7' },
-      { name: '--palette-control-tint', value: '#E1EFE4' },
-      { name: '--palette-control-active', value: '#7BC98C' },
-      { name: '--palette-control-disabled', value: '#F2F5F3' },
-      { name: '--palette-control-foreground', value: '#2F7A42' },
+    tokens: [
+      '--palette-control-surface',
+      '--palette-control-hover',
+      '--palette-control-pressed',
+      '--palette-control-tint',
+      '--palette-control-active',
+      '--palette-control-disabled',
+      '--palette-control-foreground',
     ],
   },
   {
     title: '텍스트',
-    colors: [
-      { name: '--palette-text-primary', value: '#234634' },
-      { name: '--palette-text-secondary', value: '#4A6B58' },
-      { name: '--palette-text-muted', value: '#86A392' },
-      { name: '--palette-text-disabled', value: '#A9BFB2' },
+    tokens: [
+      '--palette-text-primary',
+      '--palette-text-secondary',
+      '--palette-text-muted',
+      '--palette-text-disabled',
     ],
   },
   {
     title: '포인트 · 순위 · 상태',
-    colors: [
-      { name: '--palette-point-lime', value: '#DCEC63' },
-      { name: '--palette-point-lime-strong', value: '#C2DC44' },
-      { name: '--palette-point-foreground', value: '#3C5C22' },
-      { name: '--palette-rank-gold', value: '#F7C948' },
-      { name: '--palette-rank-silver', value: '#BFCBD4' },
-      { name: '--palette-rank-bronze', value: '#E3A063' },
-      { name: '--palette-state-orange', value: '#E0844A' },
+    tokens: [
+      '--palette-point-lime',
+      '--palette-point-lime-strong',
+      '--palette-point-foreground',
+      '--palette-rank-gold',
+      '--palette-rank-silver',
+      '--palette-rank-bronze',
+      '--palette-state-orange',
     ],
   },
   {
     title: '일러스트',
-    colors: [
-      { name: '--palette-illustration-sky', value: '#E4F3FA' },
-      { name: '--palette-illustration-green-light', value: '#C6E6CC' },
-      { name: '--palette-illustration-green', value: '#A9D9B4' },
-      { name: '--palette-illustration-leaf', value: '#6FA34E' },
-      { name: '--palette-illustration-lime', value: '#CBE092' },
+    tokens: [
+      '--palette-illustration-sky',
+      '--palette-illustration-green-light',
+      '--palette-illustration-green',
+      '--palette-illustration-leaf',
+      '--palette-illustration-lime',
     ],
   },
 ];
 
+const allTokens = groups.flatMap((group) => group.tokens);
+
+const UNDEFINED_LABEL = '정의되지 않음';
+
+/* 값을 복사해두지 않고 globals.css에 선언된 실제 값을 읽는다. 스토리와 토큰이 어긋날 수 없다. */
+function useResolvedPalette(): Record<string, string> {
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const read = () => {
+      const computed = getComputedStyle(document.documentElement);
+      setValues(
+        Object.fromEntries(
+          allTokens.map((token) => [token, computed.getPropertyValue(token).trim().toUpperCase()]),
+        ),
+      );
+    };
+
+    read();
+
+    // HMR로 globals.css가 다시 주입되면 값을 새로 읽는다.
+    const observer = new MutationObserver(read);
+    observer.observe(document.head, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  return values;
+}
+
 function ColorPalette() {
-  const total = groups.reduce((count, group) => count + group.colors.length, 0);
+  const values = useResolvedPalette();
+  const total = allTokens.length;
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 sm:px-8">
@@ -100,19 +126,23 @@ function ColorPalette() {
           <section key={group.title} className="space-y-4">
             <h2 className="text-xl font-semibold text-foreground">{group.title}</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {group.colors.map((color) => (
-                <article key={color.name} className="flex items-center gap-4 rounded-2xl border bg-surface p-4 shadow-sm">
-                  <div
-                    className="size-20 shrink-0 rounded-full border shadow-sm"
-                    style={{ backgroundColor: `var(${color.name}, ${color.value})` }}
-                    aria-label={`${color.value} 색상 미리보기`}
-                  />
-                  <div className="min-w-0 space-y-1">
-                    <p className="break-all text-sm font-medium text-foreground">{color.name}</p>
-                    <p className="text-sm text-muted">{color.value}</p>
-                  </div>
-                </article>
-              ))}
+              {group.tokens.map((token) => {
+                const value = values[token] || UNDEFINED_LABEL;
+
+                return (
+                  <article key={token} className="flex items-center gap-4 rounded-2xl border bg-surface p-4 shadow-sm">
+                    <div
+                      className="size-20 shrink-0 rounded-full border shadow-sm"
+                      style={{ backgroundColor: `var(${token})` }}
+                      aria-label={`${value} 색상 미리보기`}
+                    />
+                    <div className="min-w-0 space-y-1">
+                      <p className="break-all text-sm font-medium text-foreground">{token}</p>
+                      <p className="text-sm text-muted">{value}</p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         ))}

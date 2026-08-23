@@ -79,11 +79,11 @@
 
 /* Reserved brand palette. It is intentionally not mapped to the active HeroUI theme. */
 :root {
-  --palette-green-500: #6abf7c; --palette-green-600: #4fa463; --palette-green-550: #56b26b; --palette-green-700: #3f9455; --palette-green-900: #2f6b45;
-  --palette-surface-page: #f7fcf7; --palette-surface-tint: #e4f3e7; --palette-surface-card: #ffffff; --palette-surface-soft: #f5faf5; --palette-surface-muted: #eef8f0;
-  --palette-border-subtle: #dfeee1; --palette-border-soft: #e4f0e6; --palette-border-accent-soft: #cde9d4; --palette-border-accent: #7fc98f;
-  --palette-control-surface: #eaf3ec; --palette-control-hover: #dcebde; --palette-control-pressed: #d3e2d7; --palette-control-tint: #e1efe4; --palette-control-active: #7bc98c; --palette-control-disabled: #f2f5f3; --palette-control-foreground: #2f7a42;
-  --palette-text-primary: #234634; --palette-text-secondary: #4a6b58; --palette-text-muted: #86a392; --palette-text-disabled: #a9bfb2;
-  --palette-point-lime: #dcec63; --palette-point-lime-strong: #c2dc44; --palette-point-foreground: #3c5c22; --palette-rank-gold: #f7c948; --palette-rank-silver: #bfcbd4; --palette-rank-bronze: #e3a063; --palette-state-orange: #e0844a;
-  --palette-illustration-sky: #e4f3fa; --palette-illustration-green-light: #c6e6cc; --palette-illustration-green: #a9d9b4; --palette-illustration-leaf: #6fa34e; --palette-illustration-lime: #cbe092;
+  --palette-green-500: #f72598; --palette-green-600: #e81783; --palette-green-550: #19dce5; --palette-green-700: #00a7c4; --palette-green-900: #080d2a;
+  --palette-surface-page: #fdfdff; --palette-surface-tint: #fff0f8; --palette-surface-card: #ffffff; --palette-surface-soft: #f2fcfd; --palette-surface-muted: #f4f2fc;
+  --palette-border-subtle: #e8eaf2; --palette-border-soft: #d9dce8; --palette-border-accent-soft: #f6b9db; --palette-border-accent: #19dce5;
+  --palette-control-surface: #fff0f8; --palette-control-hover: #ffe1f1; --palette-control-pressed: #f9cde5; --palette-control-tint: #e8fafc; --palette-control-active: #f72598; --palette-control-disabled: #f2f3f7; --palette-control-foreground: #080d2a;
+  --palette-text-primary: #080d2a; --palette-text-secondary: #343954; --palette-text-muted: #7b819b; --palette-text-disabled: #b7bbcb;
+  --palette-point-lime: #ffd72e; --palette-point-lime-strong: #ffc514; --palette-point-foreground: #6d4b00; --palette-rank-gold: #ffc514; --palette-rank-silver: #c5cbe0; --palette-rank-bronze: #e8935c; --palette-state-orange: #ff6b4a;
+  --palette-illustration-sky: #cff8fa; --palette-illustration-green-light: #ffd5eb; --palette-illustration-green: #e9d8ff; --palette-illustration-leaf: #f72598; --palette-illustration-lime: #ffe66a;
 }

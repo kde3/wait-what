@@ -1,0 +1,12 @@
+.git
+.github
+.next
+frontend/.next
+node_modules
+storybook-static
+.storybook
+.codex
+docs
+*.log
+.env*
+!.env.example
