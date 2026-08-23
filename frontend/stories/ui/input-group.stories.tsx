@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Magnifier } from '@gravity-ui/icons';
+import { Search } from 'pixelarticons/react';
 import { InputGroup } from '../../components/ui/input-group';
 
 const meta = {
@@ -22,7 +22,7 @@ export const Default: Story = {
   render: () => (
     <InputGroup fullWidth>
       <InputGroup.Prefix>
-        <Magnifier className="size-4 text-[var(--palette-text-secondary)]" aria-hidden="true" />
+        <Search className="size-4 text-[var(--palette-text-secondary)]" aria-hidden="true" />
       </InputGroup.Prefix>
       <InputGroup.Input aria-label="방 찾기" placeholder="방 이름을 검색하세요" />
       <InputGroup.Suffix className="text-xs font-bold text-[var(--palette-text-secondary)]">

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n-provider';
-import { Button } from '@heroui/react';
-import { Microphone, MicrophoneSlash } from '@gravity-ui/icons';
+import { Button } from '../ui/button';
+import { Mic, MicOff } from 'pixelarticons/react';
 import { SPEECH_LANGS } from '../../lib/i18n';
 
 // 음성 프롬프트 입력 (Web Speech API) — 미지원 브라우저에선 숨김
@@ -50,7 +50,7 @@ export default function MicButton({ onText, disabled }) {
       isDisabled={disabled}
       aria-label={t('micTitle')}
     >
-      {listening ? <MicrophoneSlash className="size-5" /> : <Microphone className="size-5" />}
+      {listening ? <MicOff className="size-5" /> : <Mic className="size-5" />}
     </Button>
   );
 }

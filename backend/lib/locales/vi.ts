@@ -1,6 +1,6 @@
 // Vietnamese locale
 export const dict = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'Game tiệc tùng với tranh vẽ AI',
   nickname: 'Biệt danh',
   nicknamePlaceholder: 'Nhập biệt danh',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 
 interface ColorGroup {
@@ -8,13 +8,13 @@ interface ColorGroup {
 
 const groups: ColorGroup[] = [
   {
-    title: '브랜드 그린',
+    title: '주요컬러',
     tokens: [
-      '--palette-green-500',
-      '--palette-green-600',
-      '--palette-green-550',
-      '--palette-green-700',
-      '--palette-green-900',
+      '--palette-primary',
+      '--palette-primary-strong',
+      '--palette-secondary',
+      '--palette-secondary-strong',
+      '--palette-ink',
     ],
   },
   {
@@ -60,23 +60,14 @@ const groups: ColorGroup[] = [
   {
     title: '포인트 · 순위 · 상태',
     tokens: [
-      '--palette-point-lime',
-      '--palette-point-lime-strong',
+      '--palette-point',
+      '--palette-point-strong',
       '--palette-point-foreground',
       '--palette-rank-gold',
       '--palette-rank-silver',
       '--palette-rank-bronze',
-      '--palette-state-orange',
-    ],
-  },
-  {
-    title: '일러스트',
-    tokens: [
-      '--palette-illustration-sky',
-      '--palette-illustration-green-light',
-      '--palette-illustration-green',
-      '--palette-illustration-leaf',
-      '--palette-illustration-lime',
+      '--palette-state-alert',
+      '--palette-state-success',
     ],
   },
 ];
@@ -85,13 +76,16 @@ const allTokens = groups.flatMap((group) => group.tokens);
 
 const UNDEFINED_LABEL = '정의되지 않음';
 
-/* 값을 복사해두지 않고 globals.css에 선언된 실제 값을 읽는다. 스토리와 토큰이 어긋날 수 없다. */
-function useResolvedPalette(): Record<string, string> {
+type Mode = 'light' | 'dark';
+
+function useResolvedPalette(scopeRef: { current: HTMLElement | null }): Record<string, string> {
   const [values, setValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const read = () => {
-      const computed = getComputedStyle(document.documentElement);
+      const scope = scopeRef.current;
+      if (!scope) return;
+      const computed = getComputedStyle(scope);
       setValues(
         Object.fromEntries(
           allTokens.map((token) => [token, computed.getPropertyValue(token).trim().toUpperCase()]),
@@ -101,54 +95,67 @@ function useResolvedPalette(): Record<string, string> {
 
     read();
 
-    // HMR로 globals.css가 다시 주입되면 값을 새로 읽는다.
     const observer = new MutationObserver(read);
     observer.observe(document.head, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, []);
+  }, [scopeRef]);
 
   return values;
 }
 
-function ColorPalette() {
-  const values = useResolvedPalette();
-  const total = allTokens.length;
+function Swatch({ token, value }: { token: string; value: string }) {
+  return (
+    <article className="flex items-center gap-4 rounded-2xl border bg-surface p-4 shadow-sm">
+      <div
+        className="size-20 shrink-0 rounded-full border shadow-sm"
+        style={{ backgroundColor: `var(${token})` }}
+        aria-label={`${value} 색상 미리보기`}
+      />
+      <div className="min-w-0 space-y-1">
+        <p className="break-all text-sm font-medium text-foreground">{token}</p>
+        <p className="text-sm text-muted">{value}</p>
+      </div>
+    </article>
+  );
+}
+
+function PaletteScope({ mode, columns }: { mode: Mode; columns: string }) {
+  const scopeRef = useRef<HTMLElement | null>(null);
+  const values = useResolvedPalette(scopeRef);
 
   return (
-    <main className="min-h-screen bg-background px-4 py-10 sm:px-8">
+    <main
+      ref={scopeRef}
+      className={`${mode} min-h-screen bg-background px-4 py-10 sm:px-8`}
+      data-theme={mode}
+    >
       <div className="mx-auto w-full max-w-7xl space-y-10">
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">AI 갈틱폰 컬러 팔레트</h1>
-          <p className="text-sm text-muted">globals.css에 보관된 브랜드 팔레트 토큰 · 총 {total}개</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            컬러 팔레트 · {mode === 'dark' ? '다크' : '라이트'}
+          </h1>
+          <p className="text-sm text-muted">
+            globals.css에 보관된 브랜드 팔레트 토큰 · 총 {allTokens.length}개
+          </p>
         </header>
 
         {groups.map((group) => (
           <section key={group.title} className="space-y-4">
             <h2 className="text-xl font-semibold text-foreground">{group.title}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {group.tokens.map((token) => {
-                const value = values[token] || UNDEFINED_LABEL;
-
-                return (
-                  <article key={token} className="flex items-center gap-4 rounded-2xl border bg-surface p-4 shadow-sm">
-                    <div
-                      className="size-20 shrink-0 rounded-full border shadow-sm"
-                      style={{ backgroundColor: `var(${token})` }}
-                      aria-label={`${value} 색상 미리보기`}
-                    />
-                    <div className="min-w-0 space-y-1">
-                      <p className="break-all text-sm font-medium text-foreground">{token}</p>
-                      <p className="text-sm text-muted">{value}</p>
-                    </div>
-                  </article>
-                );
-              })}
+            <div className={`grid gap-4 ${columns}`}>
+              {group.tokens.map((token) => (
+                <Swatch key={token} token={token} value={values[token] || UNDEFINED_LABEL} />
+              ))}
             </div>
           </section>
         ))}
       </div>
     </main>
   );
+}
+
+function ColorPalette() {
+  return <PaletteScope mode="light" columns="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />;
 }
 
 const meta = {
@@ -161,3 +168,16 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Palette: Story = {};
+
+export const Dark: Story = {
+  render: () => <PaletteScope mode="dark" columns="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />,
+};
+
+export const Compare: Story = {
+  render: () => (
+    <div className="grid md:grid-cols-2">
+      <PaletteScope mode="light" columns="sm:grid-cols-2" />
+      <PaletteScope mode="dark" columns="sm:grid-cols-2" />
+    </div>
+  ),
+};

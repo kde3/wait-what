@@ -1,12 +1,14 @@
 'use client';
 
+import { Check, Eye, Hourglass, Key, Mic, PartyPopper, Pencil, Search, Target, Trophy, Users, Zap } from 'pixelarticons/react';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { wordText } from '../../lib/words';
 import { sfx } from '../../lib/sound';
 import { useCountdown, PromptPanel, GuessPanel, TeamBadge } from './game-bits';
-import { TimerBar } from '../ui/timer-bar';
-import { Button, Input, Surface } from '@heroui/react';
+import { TimerBar } from './timer-bar';
+import { Input, Surface } from '@heroui/react';
+import { Button } from '../ui/button';
 
 // 프롬프트/생성이미지 로컬 상태 — resetKey가 바뀌면 서버 draft로 초기화
 function useDraft(draft, resetKey) {
@@ -199,7 +201,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
 
       {g.phase === 'reveal' ? (
         <div className="rounded-xl border bg-surface p-6 text-center text-foreground shadow-sm">
-          <h2>{g.winner ? `🎉 ${t('roundWinner')}: ${g.winner}` : t('noWinner')}</h2>
+          <h2>{g.winner ? <><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {`${t('roundWinner')}: ${g.winner}`}</> : t('noWinner')}</h2>
           <p className="my-2 text-sm">
             {t('keywordWas')}: <b>{wordText(g.keyword, lang)}</b>
           </p>
@@ -208,7 +210,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
       ) : g.youAreDrawer ? (
         <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
           <h2>{t('speedDrawTitle')}</h2>
-          <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground">🔑 {wordText(g.keyword, lang)}</div>
+          <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground"><Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(g.keyword, lang)}</div>
           {g.phase === 'draw' ? (
             <PromptPanel
               prompt={prompt}
@@ -288,7 +290,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
         <div className="rounded-xl border bg-surface p-6 text-center text-foreground shadow-sm">
           <h2>
             {g.winnerTeam != null
-              ? `🎉 ${t('winnerTeamLabel')}: ${g.winnerTeam === 0 ? t('teamA') : t('teamB')} (${g.winner})`
+              ? <><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {`${t('winnerTeamLabel')}: ${g.winnerTeam === 0 ? t('teamA') : t('teamB')} (${g.winner})`}</>
               : t('noWinner')}
           </h2>
           <p className="my-2 text-sm">
@@ -312,13 +314,13 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
               <TeamBadge team={myTeam} /> {t('yourTeam')}
             </h2>
             <span className="text-xs text-muted">
-              {t('speedDrawerIs')}: <b>{mine.drawer}</b> · {other.imageReady ? '⚡' : '⏳'} {g.teams[1 - myTeam].drawer}
+              {t('speedDrawerIs')}: <b>{mine.drawer}</b> · {other.imageReady ? <Zap className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : <Hourglass className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" />} {g.teams[1 - myTeam].drawer}
             </span>
           </div>
 
           {g.youAreDrawer ? (
             <>
-              <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground">🔑 {wordText(g.keyword, lang)}</div>
+              <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground"><Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(g.keyword, lang)}</div>
               {mine.imageReady ? (
                 <>
                   <img className="w-full rounded-lg border object-cover" src={mine.image} alt="AI" />
@@ -374,7 +376,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 font-medium">
         <span>
-          🎯 {t('relayThemeLabel')}: <b>{wordText(g.theme, lang)}</b>
+          <Target className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayThemeLabel')}: <b>{wordText(g.theme, lang)}</b>
         </span>
         <span className="text-xs text-muted">
           {t('turn')} {Math.min(myGroup.turn, myGroup.totalTurns)} / {myGroup.totalTurns}
@@ -391,7 +393,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
           )}
           {gi === g.yourGroup && group.youAreCurrent && !group.done ? (
             <>
-              <h2>🖌️ {t('relayYourTurn')}</h2>
+              <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
               {group.currentImage && !imageUrl && <img className="w-full rounded-lg border object-cover" src={group.currentImage} alt="AI" />}
               <PromptPanel
                 prompt={prompt}
@@ -410,7 +412,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
             <>
               {!group.done && (
                 <p className="text-sm text-muted">
-                  ✏️ {t('relayWaitTurn')}: <b>{group.turnNickname}</b>
+                  <Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayWaitTurn')}: <b>{group.turnNickname}</b>
                 </p>
               )}
               {group.currentImage ? (
@@ -449,7 +451,7 @@ export function CoopPlay({ state, playerId, api, busy, error }) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 font-medium">
         <span>
-          🎯 {t('relayThemeLabel')}: <b>{wordText(g.theme, lang)}</b>
+          <Target className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayThemeLabel')}: <b>{wordText(g.theme, lang)}</b>
         </span>
       </div>
       <TimerBar remaining={remaining} total={state.options.imageSeconds} />
@@ -468,7 +470,7 @@ export function CoopPlay({ state, playerId, api, busy, error }) {
                   <img src={cell.url} alt={cell.nickname} />
                 ) : (
                   <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">
-                    <span>{cell.submitted ? '✅' : '⏳'}</span>
+                    <span>{cell.submitted ? <Check className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : <Hourglass className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" />}</span>
                     <span>{cell.nickname}</span>
                   </div>
                 )}
@@ -479,7 +481,7 @@ export function CoopPlay({ state, playerId, api, busy, error }) {
       ))}
 
       <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-        <h2>🧩 {t('coopTitle')}</h2>
+        <h2><Users className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('coopTitle')}</h2>
         {g.you.submitted ? (
           <div className="py-8 text-center text-sm text-muted">
             <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
@@ -531,7 +533,7 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 font-medium">
         <span>
-          🕵️ {t('imposterPublic')}: <b>{g.imposter}</b>
+          <Eye className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterPublic')}: <b>{g.imposter}</b>
         </span>
         <span className="text-xs text-muted">
           {t('keywordLabel')}: <b>{g.keyword ? wordText(g.keyword, lang) : t('imposterKeywordHidden')}</b>
@@ -547,14 +549,14 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
       )}
       {g.youAreModerator && (
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-5">
-          <p className="text-sm text-muted">🎙️ {t('youAreModerator')}</p>
+          <p className="text-sm text-muted"><Mic className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('youAreModerator')}</p>
         </div>
       )}
 
       <ul className="flex flex-wrap gap-2">
         {g.order.map((nick, i) => (
           <li key={i} className={i < g.turnIndex ? 'done' : i === g.turnIndex && g.phase === 'turns' ? 'current' : ''}>
-            {i < g.turnIndex ? '✅' : i === g.turnIndex && g.phase === 'turns' ? '🖌️' : '⏳'} {nick}
+            {i < g.turnIndex ? <Check className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : i === g.turnIndex && g.phase === 'turns' ? <Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : <Hourglass className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" />} {nick}
           </li>
         ))}
       </ul>
@@ -575,7 +577,7 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
 
       {g.phase === 'turns' && g.youAreCurrent && (
         <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-          <h2>🖌️ {t('relayYourTurn')}</h2>
+          <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
           <PromptPanel
             prompt={prompt}
             setPrompt={setPrompt}
@@ -595,7 +597,7 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
       {g.phase === 'guess' &&
         (g.youAreImposter ? (
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2>🔎 {t('imposterGuessTitle')}</h2>
+            <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterGuessTitle')}</h2>
             <Input
               type="text"
               maxLength={100}
@@ -625,7 +627,7 @@ export function Scoreboard({ state, teamScores }) {
   const { t } = useI18n();
   return (
     <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-      <h2>🏆 {t('scoreboard')}</h2>
+      <h2><Trophy className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('scoreboard')}</h2>
       {teamScores ? (
         <div className="flex justify-center gap-3 py-2 text-lg">
           <span className="inline-flex rounded-full bg-surface-tertiary px-3 py-1 text-xs font-medium text-foreground">

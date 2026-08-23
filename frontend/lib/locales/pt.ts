@@ -1,6 +1,6 @@
 // Brazilian Portuguese locale
 export const dict = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'Um jogo de festa com desenhos feitos por IA',
   nickname: 'Apelido',
   nicknamePlaceholder: 'Digite seu apelido',

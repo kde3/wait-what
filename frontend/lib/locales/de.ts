@@ -1,6 +1,6 @@
 // German locale
 export const dict = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'Ein Partyspiel mit KI-Zeichnungen',
   nickname: 'Spitzname',
   nicknamePlaceholder: 'Spitznamen eingeben',

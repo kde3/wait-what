@@ -1,6 +1,6 @@
 // Indonesian locale
 export const dict = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'Game seru bareng teman dengan gambar AI',
   nickname: 'Nama panggilan',
   nicknamePlaceholder: 'Masukkan nama panggilan',

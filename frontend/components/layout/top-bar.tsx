@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { LANGS, LANG_LABELS } from '../../lib/i18n';
 import { isMuted, setMuted, sfx } from '../../lib/sound';
-import { Button, ListBox, Select } from '@heroui/react';
-import { ArrowLeft, Volume, VolumeXmark } from '@gravity-ui/icons';
+import { Select } from '../ui/select';
+import { Button } from '../ui/button';
+import { ArrowLeft, Volume2, VolumeX } from 'pixelarticons/react';
 import { ProfileAvatar } from '../ui/profile-avatar';
+import { ThemeMenu } from './theme-menu';
 
 interface TopBarProps {
   nickname?: string;
@@ -41,17 +43,15 @@ export default function TopBar({ nickname, onBackToProfile, onBack }: TopBarProp
         )}
       <div className="flex items-center gap-2">
         <Select value={lang} onChange={(value) => setLang(String(value))} aria-label={t('language')} className="w-28">
-          <Select.Trigger><Select.Value /></Select.Trigger>
-          <Select.Popover><ListBox>
           {LANGS.map((l) => (
-            <ListBox.Item key={l} id={l} textValue={LANG_LABELS[l]}>
+            <Select.Item key={l} id={l} textValue={LANG_LABELS[l]}>
               {LANG_LABELS[l]}
-            </ListBox.Item>
+            </Select.Item>
           ))}
-          </ListBox></Select.Popover>
         </Select>
+        <ThemeMenu />
         <Button isIconOnly variant="tertiary" onClick={toggleMute} aria-label={muted ? t('unmute') : t('mute')}>
-          {muted ? <VolumeXmark className="size-5" /> : <Volume className="size-5" />}
+          {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
         </Button>
         {nickname && (
           <div className="flex min-w-0 items-center gap-2" aria-label={`${t('nickname')}: ${nickname}`}>

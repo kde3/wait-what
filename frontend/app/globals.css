@@ -10,29 +10,30 @@
 }
 
 @font-face {
-  font-family: "TmoneyRoundWind";
-  src: url("/fonts/TmoneyRoundWind/TmoneyRoundWindRegular.ttf") format("truetype");
+  font-family: "Mona";
+  src: url("/fonts/Mona/Mona12.woff2") format("woff2");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
 }
 
+/* Mona는 Bold 한 종류뿐이라 700~900을 모두 이 파일로 받는다. (font-extrabold=800 포함) */
 @font-face {
-  font-family: "TmoneyRoundWind";
-  src: url("/fonts/TmoneyRoundWind/TmoneyRoundWindExtraBold.ttf") format("truetype");
+  font-family: "Mona";
+  src: url("/fonts/Mona/Mona12-Bold.woff2") format("woff2");
   font-style: normal;
-  font-weight: 800;
+  font-weight: 700 900;
   font-display: swap;
 }
 
 :root {
   --font-pretendard: "Pretendard";
-  --font-tmoney-roundwind: "TmoneyRoundWind";
+  --font-brand: "Mona";
 }
 
 @theme inline {
-  --font-heading: var(--font-tmoney-roundwind);
-  --font-sans: var(--font-tmoney-roundwind);
+  --font-heading: var(--font-brand);
+  --font-sans: var(--font-brand);
   --font-description: var(--font-pretendard);
 }
 
@@ -42,7 +43,7 @@
   }
 
   html {
-    font-family: var(--font-tmoney-roundwind), var(--font-pretendard), sans-serif;
+    font-family: var(--font-brand), var(--font-pretendard), sans-serif;
   }
 
   body {
@@ -58,32 +59,71 @@
   }
 }
 
-@layer components {
-  .primary-gradient {
-    background: linear-gradient(
-      180deg,
-      var(--palette-green-500) 0%,
-      var(--palette-green-550) 44%,
-      var(--palette-green-600) 100%
-    );
-  }
 
-  .primary-elevation {
-    box-shadow:
-      inset 0 2px 0 rgba(255, 255, 255, 0.5),
-      0 3px 0 var(--palette-green-700),
-      0 7px 16px color-mix(in srgb, var(--palette-green-600) 20%, transparent);
-  }
-
-}
-
-/* Reserved brand palette. It is intentionally not mapped to the active HeroUI theme. */
+/* 브랜드 팔레트. 아래 블록에서 HeroUI 테마 변수로 연결한다. */
 :root {
-  --palette-green-500: #f72598; --palette-green-600: #e81783; --palette-green-550: #19dce5; --palette-green-700: #00a7c4; --palette-green-900: #080d2a;
+  --palette-primary: #f72598; --palette-primary-strong: #e81783; --palette-secondary: #19dce5; --palette-secondary-strong: #00a7c4; --palette-ink: #080d2a;
   --palette-surface-page: #fdfdff; --palette-surface-tint: #fff0f8; --palette-surface-card: #ffffff; --palette-surface-soft: #f2fcfd; --palette-surface-muted: #f4f2fc;
   --palette-border-subtle: #e8eaf2; --palette-border-soft: #d9dce8; --palette-border-accent-soft: #f6b9db; --palette-border-accent: #19dce5;
   --palette-control-surface: #fff0f8; --palette-control-hover: #ffe1f1; --palette-control-pressed: #f9cde5; --palette-control-tint: #e8fafc; --palette-control-active: #f72598; --palette-control-disabled: #f2f3f7; --palette-control-foreground: #080d2a;
   --palette-text-primary: #080d2a; --palette-text-secondary: #343954; --palette-text-muted: #7b819b; --palette-text-disabled: #b7bbcb;
-  --palette-point-lime: #ffd72e; --palette-point-lime-strong: #ffc514; --palette-point-foreground: #6d4b00; --palette-rank-gold: #ffc514; --palette-rank-silver: #c5cbe0; --palette-rank-bronze: #e8935c; --palette-state-orange: #ff6b4a;
-  --palette-illustration-sky: #cff8fa; --palette-illustration-green-light: #ffd5eb; --palette-illustration-green: #e9d8ff; --palette-illustration-leaf: #f72598; --palette-illustration-lime: #ffe66a;
+  --palette-point: #ffd72e; --palette-point-strong: #ffc514; --palette-point-foreground: #6d4b00; --palette-rank-gold: #ffc514; --palette-rank-silver: #c5cbe0; --palette-rank-bronze: #e8935c; --palette-state-alert: #ff6b4a; --palette-state-success: #56d57b;
+}
+
+.dark,
+[data-theme="dark"] {
+  --palette-surface-page: #080d2a; --palette-surface-tint: #1e1030; --palette-surface-card: #121936; --palette-surface-soft: #0e1a2e; --palette-surface-muted: #171b33;
+  --palette-border-subtle: #232842; --palette-border-soft: #2e3350; --palette-border-accent-soft: #5a2745;
+  --palette-control-surface: #1e1330; --palette-control-hover: #2a1a3e; --palette-control-pressed: #351f4a; --palette-control-tint: #10262e; --palette-control-disabled: #1c2138; --palette-control-foreground: #f2f3f7;
+  --palette-text-primary: #f2f3f7; --palette-text-secondary: #c5cbe0; --palette-text-muted: #8f96b3; --palette-text-disabled: #5c6483;
+}
+
+/* 팔레트 -> HeroUI 테마 매핑.
+   HeroUI 기본값은 @layer base 안에 있고 이 블록은 레이어 밖이라, !important 없이 우선한다.
+   .dark/.light가 붙은 중첩 스코프에서도 매핑이 유지되도록 같은 셀렉터를 함께 받는다. */
+:root,
+.light,
+.dark,
+[data-theme] {
+  /* 배경 · 표면 */
+  --background: var(--palette-surface-page);
+  --foreground: var(--palette-text-primary);
+  --surface: var(--palette-surface-card);
+  --surface-secondary: var(--palette-surface-soft);
+  --surface-tertiary: var(--palette-surface-muted);
+  --overlay: var(--palette-surface-card);
+  --muted: var(--palette-text-muted);
+
+  /* 주요 액션 */
+  --accent: var(--palette-primary);
+  --accent-hover: var(--palette-primary-strong);
+  --accent-soft: var(--palette-control-surface);
+  --accent-soft-hover: var(--palette-control-hover);
+  --accent-soft-foreground: var(--palette-primary-strong);
+  --focus: var(--palette-primary);
+  --link: var(--palette-primary);
+
+  /* 보조 컨트롤 */
+  --default: var(--palette-control-surface);
+  --default-foreground: var(--palette-control-foreground);
+  --default-hover: var(--palette-control-hover);
+  --default-soft: var(--palette-control-tint);
+
+  /* 보더 · 구분선 */
+  --border: var(--palette-border-subtle);
+  --border-secondary: var(--palette-border-soft);
+  --separator: var(--palette-border-subtle);
+
+  /* 입력 필드 */
+  --field-background: var(--palette-surface-card);
+  --field-foreground: var(--palette-text-primary);
+  --field-placeholder: var(--palette-text-muted);
+  --field-border: var(--palette-border-accent-soft);
+  --field-border-focus: var(--palette-primary);
+
+  /* 상태색 */
+  --danger: var(--palette-state-alert);
+  --success: var(--palette-state-success);
+  --warning: var(--palette-point-strong);
+  --warning-foreground: var(--palette-point-foreground);
 }

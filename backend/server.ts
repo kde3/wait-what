@@ -25,9 +25,11 @@ async function main() {
   expressApp.use((req, res, nextMiddleware) => {
     const origin = req.headers.origin?.replace(/\/+$/, '');
     const allowAnyOrigin = allowedOrigins.includes('*');
+    // 허용 여부와 무관하게 항상 보낸다. 거부한 응답에 Vary가 없으면 캐시가 그 응답을
+    // 다른 오리진에도 재사용해, 엉뚱한 Access-Control-Allow-Origin이 돌아온다.
+    res.setHeader('Vary', 'Origin');
     if (origin && (allowAnyOrigin || allowedOrigins.includes(origin))) {
       res.setHeader('Access-Control-Allow-Origin', allowAnyOrigin ? '*' : origin);
-      res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     }

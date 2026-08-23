@@ -1,5 +1,5 @@
-import { LoadingPageView } from '../components/pages/loading-page-view';
+import { LoadingView } from '../views/loading-view';
 
 export default function Loading() {
-  return <LoadingPageView />;
+  return <LoadingView />;
 }

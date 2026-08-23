@@ -1,10 +1,12 @@
 'use client';
 
+import { Check } from 'pixelarticons/react';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import MicButton from './mic-button';
-import { Button, Input } from '@heroui/react';
-import { PromptInput } from '../ui/prompt-input';
+import { Input } from '@heroui/react';
+import { Button } from '../ui/button';
+import { PromptInput } from './prompt-input';
 
 // 서버 remaining을 받아 초 단위로 로컬 카운트다운
 export function useCountdown(serverRemaining, resetKey) {
@@ -72,7 +74,7 @@ export function GuessPanel({ guesses, onGuess, disabled, busy }: any) {
         {(guesses ?? []).map((g, i) => (
           <div key={i} className={g.correct ? 'flex gap-2 text-sm font-medium text-accent' : 'flex gap-2 text-sm'}>
             <b>{g.nickname}</b>
-            <span>{g.correct ? `✅ ${g.text ?? t('correctMark')}` : g.text}</span>
+            <span>{g.correct ? <><Check className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {g.text ?? t('correctMark')}</> : g.text}</span>
           </div>
         ))}
       </div>

@@ -1,5 +1,5 @@
-import { NotFoundPageView } from '../components/pages/not-found-page-view';
+import { NotFoundView } from '../views/not-found-view';
 
 export default function NotFound() {
-  return <NotFoundPageView />;
+  return <NotFoundView />;
 }

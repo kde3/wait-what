@@ -1,6 +1,6 @@
 // Thai locale
 export const dict = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'ปาร์ตี้เกมสุดมันกับภาพวาดจาก AI',
   nickname: 'ชื่อเล่น',
   nicknamePlaceholder: 'ใส่ชื่อเล่น',

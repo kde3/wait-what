@@ -17,6 +17,7 @@
 /build
 /storybook-static/
 frontend/storybook-static/
+frontend/public/storybook/
 
 # misc
 .DS_Store

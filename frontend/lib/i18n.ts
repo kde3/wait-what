@@ -11,7 +11,7 @@ import { dict as id } from './locales/id';
 export { LANGS, LANG_LABELS, SPEECH_LANGS } from './langs';
 
 const ko = {
-  appName: 'AI 갈틱폰',
+  appName: 'wait, what?',
   tagline: 'AI 그림으로 즐기는 파티 게임',
   nickname: '닉네임',
   nicknamePlaceholder: '닉네임 입력',
@@ -25,6 +25,10 @@ const ko = {
   roomPasswordCreateHint: '방 비밀번호',
   errWrongPassword: '방 비밀번호가 올바르지 않습니다.',
   errRoomPasswordRequired: '비밀방 비밀번호를 입력하세요.',
+  theme: '화면 테마',
+  themeLight: '라이트',
+  themeDark: '다크',
+  themeSystem: '시스템',
   guestProfile: '익명 프로필',
   socialLogin: '소셜 로그인',
   socialLoginUnavailable: '아직 구현되지 않은 기능이에요.',
@@ -193,7 +197,7 @@ const ko = {
 };
 
 const en = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'A party game powered by AI drawings',
   nickname: 'Nickname',
   nicknamePlaceholder: 'Enter nickname',
@@ -207,6 +211,10 @@ const en = {
   roomPasswordCreateHint: 'Enter a password to create a private room',
   errWrongPassword: 'The room password is incorrect.',
   errRoomPasswordRequired: 'Please enter a password for the private room.',
+  theme: 'Appearance',
+  themeLight: 'Light',
+  themeDark: 'Dark',
+  themeSystem: 'System',
   guestProfile: 'Guest profile',
   socialLogin: 'Social login',
   socialLoginUnavailable: 'This feature has not been implemented yet.',
@@ -375,7 +383,7 @@ const en = {
 };
 
 const ja = {
-  appName: 'AIガーティックフォン',
+  appName: 'wait, what?',
   tagline: 'AIイラストで遊ぶパーティーゲーム',
   nickname: 'ニックネーム',
   nicknamePlaceholder: 'ニックネームを入力',
@@ -557,7 +565,7 @@ const ja = {
 };
 
 const zh = {
-  appName: 'AI 你画我猜',
+  appName: 'wait, what?',
   tagline: '用 AI 绘画玩的派对游戏',
   nickname: '昵称',
   nicknamePlaceholder: '输入昵称',

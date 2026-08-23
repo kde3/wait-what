@@ -1,12 +1,13 @@
 'use client';
 
+import { Article, BookOpen, Crown, Eye, Key, PartyPopper, Pencil, Share, Star, Target, Trophy, Users } from 'pixelarticons/react';
 import { useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { aiComment } from '../../lib/i18n';
 import { wordText } from '../../lib/words';
 import { TeamBadge } from './game-bits';
 import { sfx } from '../../lib/sound';
-import { Button } from '@heroui/react';
+import { Button } from '../ui/button';
 
 // 게임 결과 공유 텍스트 생성 (키워드/프롬프트 포함)
 function buildShareText(state, results, t, lang) {
@@ -85,7 +86,7 @@ function ShareButton({ state, results }) {
 
   return (
     <Button onClick={share} className="w-full">
-      {copied ? t('shareCopied') : `📤 ${t('share')}`}
+      {copied ? t('shareCopied') : <><Share className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('share')}</>}
     </Button>
   );
 }
@@ -97,13 +98,13 @@ export default function GameResults({ state }) {
 
   return (
     <>
-      <p className="text-center text-sm text-muted">🎉 {t('resultsTitle')}</p>
+      <p className="text-center text-sm text-muted"><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('resultsTitle')}</p>
 
       {r.kind === 'classic' &&
         r.albums.map((album, ai) => (
           <div key={ai} className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
             <h2>
-              📖 {album.owner}
+              <BookOpen className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {album.owner}
               {t('albumOf')}
             </h2>
             {album.entries.map((item, i) => (
@@ -135,7 +136,7 @@ export default function GameResults({ state }) {
       {r.kind === 'speed' && (
         <>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2>🏆 {t('scoreboard')}</h2>
+            <h2><Trophy className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('scoreboard')}</h2>
             {r.teamMode ? (
               <div className="flex justify-center gap-3 py-2 text-lg">
                 <span className="inline-flex rounded-full bg-surface-tertiary px-3 py-1 text-xs font-medium text-foreground">
@@ -150,7 +151,7 @@ export default function GameResults({ state }) {
                 {r.scores.map((s, i) => (
                   <li key={i}>
                     <span>
-                      {i === 0 ? '👑 ' : ''}
+                      {i === 0 ? <Crown className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : null}
                       {s.nickname}
                     </span>
                     <b>
@@ -162,12 +163,12 @@ export default function GameResults({ state }) {
             )}
           </div>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2>📜 {t('resultsTitle')}</h2>
+            <h2><Article className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('resultsTitle')}</h2>
             {r.history.map((h, i) => (
               <div key={i} className="space-y-2 border-b py-4 last:border-0">
                 <div className="text-sm font-medium">
-                  🔑 {wordText(h.keyword, lang)} — 🖌️ {h.drawer} →{' '}
-                  {h.winner ? `🎉 ${h.winner}` : t('noWinner')}
+                  <Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(h.keyword, lang)} — <Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {h.drawer} →{' '}
+                  {h.winner ? <><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {h.winner}</> : t('noWinner')}
                 </div>
                 {h.url && <img className="w-full rounded-lg border object-cover" src={h.url} alt="AI" />}
                 {h.prompt && (
@@ -184,7 +185,7 @@ export default function GameResults({ state }) {
       {r.kind === 'speed_team' && (
         <>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2>🏆 {t('scoreboard')}</h2>
+            <h2><Trophy className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('scoreboard')}</h2>
             <div className="flex justify-center gap-3 py-2 text-lg">
               <span className="inline-flex rounded-full bg-surface-tertiary px-3 py-1 text-xs font-medium text-foreground">
                 {t('teamA')} {r.teamScores[0]}
@@ -195,12 +196,12 @@ export default function GameResults({ state }) {
             </div>
           </div>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2>📜 {t('resultsTitle')}</h2>
+            <h2><Article className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('resultsTitle')}</h2>
             {r.history.map((h, i) => (
               <div key={i} className="space-y-2 border-b py-4 last:border-0">
                 <div className="text-sm font-medium">
-                  🔑 {wordText(h.keyword, lang)} →{' '}
-                  {h.winner ? `🎉 ${h.winnerTeam === 0 ? t('teamA') : t('teamB')} (${h.winner})` : t('noWinner')}
+                  <Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(h.keyword, lang)} →{' '}
+                  {h.winner ? <><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {`${h.winnerTeam === 0 ? t('teamA') : t('teamB')} (${h.winner})`}</> : t('noWinner')}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[0, 1].map((ti) =>
@@ -222,7 +223,7 @@ export default function GameResults({ state }) {
         <>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
             <h2>
-              🎯 {t('relayThemeLabel')}: {wordText(r.theme, lang)}
+              <Target className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayThemeLabel')}: {wordText(r.theme, lang)}
             </h2>
           </div>
           {r.groups.map((g, gi) => (
@@ -234,7 +235,7 @@ export default function GameResults({ state }) {
               )}
               {g.score != null && (
                 <div className="mb-3 rounded-lg bg-surface-secondary p-3 text-center font-medium">
-                  ⭐ {t('aiScore')}: <b>{g.score}</b> — {aiComment(lang, g.score)}
+                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {aiComment(lang, g.score)}
                 </div>
               )}
               {g.finalImage && (
@@ -247,7 +248,7 @@ export default function GameResults({ state }) {
               {g.entries.map((e, i) => (
                 <div key={i} className="space-y-2 border-b py-4 last:border-0">
                   <div className="text-sm font-medium">
-                    🖌️ {e.nickname} {e.skipped && <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-0.5 text-xs text-foreground">{t('skipped')}</span>}
+                    <Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {e.nickname} {e.skipped && <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-0.5 text-xs text-foreground">{t('skipped')}</span>}
                   </div>
                   {e.prompt && (
                     <p className="text-sm text-muted">
@@ -266,7 +267,7 @@ export default function GameResults({ state }) {
         <>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
             <h2>
-              🎯 {t('relayThemeLabel')}: {wordText(r.theme, lang)}
+              <Target className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayThemeLabel')}: {wordText(r.theme, lang)}
             </h2>
           </div>
           {r.groups.map((g, gi) => (
@@ -278,7 +279,7 @@ export default function GameResults({ state }) {
               )}
               {g.score != null && (
                 <div className="mb-3 rounded-lg bg-surface-secondary p-3 text-center font-medium">
-                  ⭐ {t('aiScore')}: <b>{g.score}</b> — {aiComment(lang, g.score)}
+                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {aiComment(lang, g.score)}
                 </div>
               )}
               <div className="grid overflow-hidden rounded-lg border" style={{ gridTemplateColumns: `repeat(${g.cols}, 1fr)` }}>
@@ -296,7 +297,7 @@ export default function GameResults({ state }) {
                 (cell, ci) =>
                   cell.prompt && (
                     <p key={ci} className="text-sm text-muted">
-                      🧩 {cell.nickname}: {cell.prompt}
+                      <Users className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {cell.nickname}: {cell.prompt}
                     </p>
                   ),
               )}
@@ -310,7 +311,7 @@ export default function GameResults({ state }) {
           <div className={r.won ? 'rounded-xl border border-accent/40 bg-accent/5 p-6 text-center shadow-sm' : 'rounded-xl border bg-surface p-6 text-center shadow-sm'}>
             <h2>{r.won ? t('imposterWin') : t('imposterLose')}</h2>
             <p className="my-2 text-sm">
-              🕵️ {t('imposterPublic')}: <b>{r.imposter}</b>
+              <Eye className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterPublic')}: <b>{r.imposter}</b>
             </p>
             <p className="my-2 text-sm">
               {t('keywordWas')}: <b>{wordText(r.keyword, lang)}</b>
@@ -327,7 +328,7 @@ export default function GameResults({ state }) {
                   {e.url ? <img src={e.url} alt={e.nickname} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
                   <span>
                     {e.nickname}
-                    {e.nickname === r.imposter ? ' 🕵️' : ''}
+                    {e.nickname === r.imposter ? <Eye className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : null}
                   </span>
                 </div>
               ))}

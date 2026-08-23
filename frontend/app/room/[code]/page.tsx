@@ -4,12 +4,13 @@ import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '../../../components/i18n-provider';
 import TopBar from '../../../components/layout/top-bar';
-import { RoomPageView } from '../../../components/pages/room-page-view';
+import { RoomView } from '../../../views/room-view';
 import { useRoomState } from '../../../hooks/use-realtime';
 import { playBgm, sfx, stopBgm } from '../../../lib/sound';
 import { apiUrl } from '../../../lib/backend-url';
-import { Button, Input, Label, TextField, toast } from '@heroui/react';
-import { ProfileSetup } from '../../../components/ui/profile-setup';
+import { Input, Label, TextField, toast } from '@heroui/react';
+import { Button } from '../../../components/ui/button';
+import { ProfileSetup } from '../../../views/profile-setup-view';
 
 export default function Room({ params }: any) {
   const router = useRouter();
@@ -157,7 +158,7 @@ export default function Room({ params }: any) {
   }
 
   return (
-    <RoomPageView
+    <RoomView
       state={state}
       playerId={playerId}
       api={api}

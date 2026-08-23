@@ -33,10 +33,10 @@ export function TextField({
 
   return (
     <TextFieldRoot isInvalid={invalid} {...props}>
-      <Label className="font-normal text-[var(--palette-text-primary)]">{label}</Label>
+      <Label>{label}</Label>
       {children}
       {description && !invalid && (
-        <Description className="text-[var(--palette-text-secondary)]">{description}</Description>
+        <Description>{description}</Description>
       )}
       {errorMessage && <FieldError>{errorMessage}</FieldError>}
     </TextFieldRoot>

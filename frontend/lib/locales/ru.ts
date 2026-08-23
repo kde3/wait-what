@@ -1,6 +1,6 @@
 // Russian locale
 export const dict = {
-  appName: 'AI Gartic Phone',
+  appName: 'wait, what?',
   tagline: 'Вечериночная игра с рисунками от ИИ',
   nickname: 'Ник',
   nicknamePlaceholder: 'Введи ник',
