@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '../../../components/i18n-provider';
-import TopBar from '../../../components/layout/top-bar';
+import Header from '../../../components/layout/header';
 import { RoomView } from '../../../views/room-view';
 import { useRoomState } from '../../../hooks/use-realtime';
 import { playBgm, sfx, stopBgm } from '../../../lib/sound';
@@ -21,6 +21,8 @@ export default function Room({ params }: any) {
   const [error, setError] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
+  const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [infoLoaded, setInfoLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const prevPhaseRef = useRef('');
   const prevStatusRef = useRef('');
@@ -31,6 +33,27 @@ export default function Room({ params }: any) {
     setNickname(window.sessionStorage.getItem('gp_nickname') ?? '');
     setCheckedStorage(true);
   }, [code]);
+
+  // 입장 전에는 방 상태를 구독하지 않으므로, 비밀번호를 물어야 하는지만 따로 확인한다.
+  useEffect(() => {
+    if (!checkedStorage || playerId) return;
+    let cancelled = false;
+    fetch(apiUrl(`/api/rooms/${code}/info`))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        setRoomInfo(data);
+        setInfoLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setInfoLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkedStorage, playerId, code]);
+
+  const needsPassword = infoLoaded && !!roomInfo && !roomInfo.isPublic;
 
   // 웹소켓으로 상태를 받고, 연결이 끊기면 훅이 알아서 폴링으로 버틴다.
   const { state, live, gone, refresh: fetchState } = useRoomState(code, playerId, checkedStorage && !!playerId);
@@ -45,8 +68,8 @@ export default function Room({ params }: any) {
     const phaseKey = state.status === 'playing' && state.game
       ? `${state.game.round ?? state.game.turnIndex ?? 0}:${state.game.phase ?? state.game.task?.kind ?? ''}`
       : '';
-    if (state.status === 'lobby') {
-      playBgm('lobby');
+    if (state.status === 'room') {
+      playBgm('home');
     }
     if (state.status === 'playing') {
       playBgm('play');
@@ -96,6 +119,9 @@ export default function Room({ params }: any) {
     if (!cleanNickname) return setError(t('errNickname'));
     setNickname(cleanNickname);
     window.sessionStorage.setItem('gp_nickname', cleanNickname);
+    // 비번방인데 아직 비밀번호를 안 받았으면 입장을 시도하지 않는다.
+    // 그냥 보내면 "비밀번호가 틀렸다"만 뜨고 입력할 자리가 없다.
+    if (needsPassword && !password) return;
     const data = await api('join', { nickname: cleanNickname, password });
     if (data) {
       sessionStorage.setItem(`gp_player_${code}`, data.playerId);
@@ -110,7 +136,7 @@ export default function Room({ params }: any) {
     if (!nickname) {
       return (
         <>
-          <TopBar onBack={() => router.push('/')} />
+          <Header onBack={() => router.push('/')} />
           <ProfileSetup initialValue={nickname} isBusy={busy} onSubmit={join} />
         </>
       );
@@ -118,7 +144,7 @@ export default function Room({ params }: any) {
 
     return (
       <>
-        <TopBar onBack={() => router.push('/')} />
+        <Header onBack={() => router.push('/')} />
         <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6">
           <h1 className="text-center text-3xl font-bold tracking-tight">{t('appName')}</h1>
           <p className="text-center text-sm text-muted">
@@ -127,11 +153,24 @@ export default function Room({ params }: any) {
           {nickname && (
             <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
               <p className="mb-3 text-center text-sm text-muted">{nickname}</p>
-              <TextField fullWidth name="roomPassword" type="password">
-                <Label>{t('roomPassword')}</Label>
-                <Input type="password" maxLength={32} placeholder={t('roomPasswordOptional')} value={password} onChange={(event) => setPassword(event.target.value)} />
-              </TextField>
-              <Button className="w-full" onClick={() => join()} isDisabled={busy}>
+              {needsPassword && (
+                <TextField fullWidth name="roomPassword" type="password">
+                  <Label>{t('roomPassword')}</Label>
+                  <Input
+                    autoFocus
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-bwignore
+                    type="password"
+                    maxLength={32}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    onKeyDown={(event) => event.key === 'Enter' && join()}
+                  />
+                </TextField>
+              )}
+              <Button className="w-full" onClick={() => join()} isDisabled={busy || !infoLoaded}>
               {t('join')}
               </Button>
               {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
@@ -145,7 +184,7 @@ export default function Room({ params }: any) {
   if (!state) {
     return (
       <>
-        <TopBar onBack={() => router.push('/')} />
+        <Header onBack={() => router.push('/')} />
         <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6">
           <div className="py-8 text-center text-sm text-muted">
             <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />

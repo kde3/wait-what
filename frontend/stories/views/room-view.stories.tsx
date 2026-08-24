@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { RoomView } from '../../views/room-view';
-import { classicPhraseState, classicResultState, lobbyState, teamLobbyState } from '../mocks/room-states';
+import { classicPhraseState, classicResultState, roomState, teamRoomState } from '../mocks/room-states';
 
 const meta = {
   title: 'Views/Room',
@@ -20,8 +20,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Lobby: Story = { args: { state: lobbyState } };
-export const TeamLobby: Story = { args: { state: teamLobbyState } };
-export const Reconnecting: Story = { args: { state: lobbyState, live: false } };
+export const Room: Story = { args: { state: roomState } };
+export const TeamRoom: Story = { args: { state: teamRoomState } };
+export const Reconnecting: Story = { args: { state: roomState, live: false } };
 export const FirstPhrase: Story = { args: { state: classicPhraseState } };
 export const FinalResult: Story = { args: { state: classicResultState } };

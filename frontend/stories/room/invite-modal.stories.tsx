@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { InviteModal } from '../../components/room/invite-modal';
 
 const meta = {
-  title: 'Lobby/Invite Modal',
+  title: 'Room/Invite Modal',
   component: InviteModal,
   parameters: { layout: 'fullscreen' },
   args: {

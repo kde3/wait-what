@@ -2,11 +2,11 @@
 let ctx = null;
 let mutedCache = null;
 let bgmAudio: HTMLAudioElement | null = null;
-let desiredBgm: 'lobby' | 'play' | null = null;
+let desiredBgm: 'home' | 'play' | null = null;
 let bgmResumeArmed = false;
 
 const BGM_SOURCES = {
-  lobby: '/sounds/bgm/lobby.mp3',
+  home: '/sounds/bgm/home.mp3',
   play: '/sounds/bgm/play.mp3',
 } as const;
 
@@ -90,7 +90,7 @@ export const sfx = {
   win: () => [523, 659, 784, 659, 1047, 1319].forEach((f, i) => tone(f, 0.15, 'triangle', 0.12, i * 0.11)),
 };
 
-export function playBgm(track: 'lobby' | 'play') {
+export function playBgm(track: 'home' | 'play') {
   desiredBgm = track;
   if (typeof window === 'undefined' || isMuted()) return;
 

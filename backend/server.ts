@@ -3,7 +3,7 @@ import express from 'express';
 import { WebSocket, WebSocketServer } from 'ws';
 import { apiRouter } from './routes.js';
 import { deleteRoom } from './lib/store.js';
-import { LOBBY, touch } from './lib/realtime.js';
+import { HOME, touch } from './lib/realtime.js';
 
 const port = Number.parseInt(process.env.PORT || '3000', 10);
 // HOSTNAME은 Git Bash와 컨테이너 런타임이 제멋대로 채우므로 쓰지 않는다. 미지정 시 전 인터페이스(IPv4+IPv6) 바인딩.
@@ -60,7 +60,7 @@ async function main() {
     const roomSockets = sockets.get(code) ?? new Set();
     sockets.set(code, roomSockets);
     roomSockets.add(ws);
-    touch(LOBBY);
+    touch(HOME);
     const pendingRemoval = emptyRoomTimers.get(code);
     if (pendingRemoval) {
       clearTimeout(pendingRemoval);
@@ -71,13 +71,13 @@ async function main() {
     ws.on('error', () => {});
     ws.on('close', () => {
       roomSockets.delete(ws);
-      touch(LOBBY);
+      touch(HOME);
       if (!roomSockets.size) {
         sockets.delete(code);
         const timer = setTimeout(() => {
           emptyRoomTimers.delete(code);
           if (sockets.get(code)?.size) return;
-          if (deleteRoom(code)) touch(LOBBY);
+          if (deleteRoom(code)) touch(HOME);
         }, 5_000);
         emptyRoomTimers.set(code, timer);
       }

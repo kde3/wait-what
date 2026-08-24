@@ -7,7 +7,7 @@ import { Card, Form, InputGroup, Label, TextField } from '@heroui/react';
 import { Tabs } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { useI18n } from '../components/i18n-provider';
-import { ProfileAvatar } from '../components/ui/profile-avatar';
+import { ProfileAvatar } from '../components/home/profile-avatar';
 
 interface ProfileSetupProps {
   initialValue?: string;

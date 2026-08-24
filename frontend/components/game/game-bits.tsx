@@ -3,44 +3,23 @@
 import { Check } from 'pixelarticons/react';
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n-provider';
-import MicButton from './mic-button';
 import { Input } from '@heroui/react';
 import { Button } from '../ui/button';
-import { PromptInput } from './prompt-input';
+import { ImagePromptInput } from './image-prompt-input';
 
-// 서버 remaining을 받아 초 단위로 로컬 카운트다운
-export function useCountdown(serverRemaining, resetKey) {
-  const [remaining, setRemaining] = useState(serverRemaining ?? 0);
-  useEffect(() => {
-    setRemaining(serverRemaining ?? 0);
-  }, [serverRemaining, resetKey]);
-  useEffect(() => {
-    const timer = setInterval(() => setRemaining((r) => (r > 0 ? r - 1 : 0)), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  return remaining;
-}
-
-// 프롬프트 입력 + 마이크 + 생성/제출 버튼 + 생성 이미지 미리보기
+// 생성 이미지 미리보기 + 프롬프트 입력 + 제출 버튼
 export function PromptPanel({ prompt, setPrompt, imageUrl, generating, busy, onGenerate, onCancelGenerate, onSubmit, submitLabel }: any) {
   const { t } = useI18n();
   return (
     <div className="space-y-3">
       {imageUrl && <img className="w-full rounded-lg border object-cover" src={imageUrl} alt="AI" />}
-      <PromptInput
+      <ImagePromptInput
         value={prompt}
-        isGenerating={generating}
+        isPending={generating}
         disabled={busy && !generating}
-        placeholder={t('promptPlaceholder')}
         onChange={setPrompt}
         onSubmit={onGenerate}
         onCancel={onCancelGenerate}
-        microphoneSlot={
-          <MicButton
-            onText={(text) => setPrompt((p) => (p ? `${p} ${text}` : text).slice(0, 200))}
-            disabled={generating || busy}
-          />
-        }
       />
       {onSubmit && imageUrl && (
         <Button className="w-full" onClick={onSubmit} isDisabled={busy || generating}>

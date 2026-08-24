@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Plus } from 'pixelarticons/react';
 import { useI18n } from '../components/i18n-provider';
-import TopBar from '../components/layout/top-bar';
-import { useLobbyRooms } from '../hooks/use-realtime';
+import Header from '../components/layout/header';
+import { useHomeRooms } from '../hooks/use-realtime';
 import { playBgm, sfx } from '../lib/sound';
 import { apiUrl } from '../lib/backend-url';
 import { Card, FieldError, Input, Label, Modal, Radio, RadioGroup, TextField, toast } from '@heroui/react';
@@ -41,7 +41,7 @@ export default function HomeView() {
   const joinCodeInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const { rooms: publicRooms } = useLobbyRooms(); // 웹소켓 푸시, 실패 시 폴링 폴백
+  const { rooms: publicRooms } = useHomeRooms(); // 웹소켓 푸시, 실패 시 폴링 폴백
   const [showCreate, setShowCreate] = useState(false);
   const [roomName, setRoomName] = useState('');
   const [suggestedRoomName, setSuggestedRoomName] = useState(SUGGESTED_ROOM_NAMES[0]);
@@ -55,14 +55,14 @@ export default function HomeView() {
     setNickname(savedNickname);
     setShowNickname(!savedNickname);
     setProfileChecked(true);
-    if (savedNickname) playBgm('lobby');
+    if (savedNickname) playBgm('home');
   }, []);
 
   function saveNickname(value: string) {
     setNickname(value);
     window.sessionStorage.setItem('gp_nickname', value);
     setShowNickname(false);
-    playBgm('lobby');
+    playBgm('home');
   }
 
   function requireNickname() {
@@ -121,6 +121,16 @@ export default function HomeView() {
     setBusy(true);
     setError('');
     sfx.click();
+
+    const info = await fetch(apiUrl(`/api/rooms/${code}/info`))
+      .then((res) => (res.ok ? res.json() : null))
+      .catch(() => null);
+    if (info && !info.isPublic) {
+      setBusy(false);
+      router.push(`/room/${code}`);
+      return;
+    }
+
     const res = await fetch(apiUrl(`/api/rooms/${code}/join`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,7 +151,7 @@ export default function HomeView() {
   if (showNickname) {
     return (
       <>
-        <TopBar />
+        <Header />
         <ProfileSetup initialValue={nickname} onSubmit={saveNickname} />
       </>
     );
@@ -149,7 +159,7 @@ export default function HomeView() {
 
   return (
     <>
-      <TopBar nickname={nickname} onBackToProfile={() => setShowNickname(true)} />
+      <Header nickname={nickname} onBackToProfile={() => setShowNickname(true)} />
       <main className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-lg flex-col gap-4 px-4 py-8">
         <section className="space-y-3 py-8 text-center">
           <div className="hidden">✦</div>
@@ -213,13 +223,13 @@ export default function HomeView() {
                     <b>{r.name}</b>
                     <span className="text-xs text-muted">
                       {t(MODE_KEY[r.mode])} · {r.players}/10 ·{' '}
-                      {r.status === 'lobby' ? t('statusLobby') : r.status === 'playing' ? t('statusPlaying') : t('statusFinished')}
+                      {r.status === 'room' ? t('statusRoom') : r.status === 'playing' ? t('statusPlaying') : t('statusFinished')}
                     </span>
                   </div>
                   <Button
                     className="w-auto shrink-0"
                     onClick={() => joinRoom(r.code)}
-                    isDisabled={busy || r.status !== 'lobby'}
+                    isDisabled={busy || r.status !== 'room'}
                   >
                     {t('join')}
                   </Button>
@@ -272,6 +282,10 @@ export default function HomeView() {
                 <TextField fullWidth isInvalid={Boolean(roomPasswordError)} isRequired name="roomPassword" type="password" className="gap-2">
                   <Label>{t('roomPassword')}</Label>
                   <Input
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-bwignore
                     type="password"
                     maxLength={32}
                     placeholder={t('roomPasswordCreateHint')}

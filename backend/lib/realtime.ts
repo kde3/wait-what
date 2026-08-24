@@ -5,7 +5,7 @@
 import { getRoom, advance, listPublicRooms } from './store';
 import { buildState } from './serialize';
 
-export const LOBBY = '@LOBBY';
+export const HOME = '@HOME';
 
 const TICK_MS = 250;
 
@@ -16,7 +16,7 @@ export function getActiveRoomPlayerCounts() {
   const counts = new Map<string, number>();
 
   for (const [code, roomSockets] of sockets()) {
-    if (code === LOBBY) continue;
+    if (code === HOME) continue;
     const room = getRoom(code);
     if (!room) continue;
     const roomPlayerIds = new Set(room.players.map((player) => player.id));
@@ -52,8 +52,8 @@ export function broadcast(code) {
   const set = sockets().get(key);
   if (!set?.size) return;
 
-  if (key === LOBBY) {
-    const payload = JSON.stringify({ type: 'lobby', rooms: listPublicRooms(getActiveRoomPlayerCounts()) });
+  if (key === HOME) {
+    const payload = JSON.stringify({ type: 'home', rooms: listPublicRooms(getActiveRoomPlayerCounts()) });
     for (const ws of set) send(ws, payload);
     return;
   }
@@ -119,7 +119,7 @@ function tick() {
   for (const [code, set] of all) {
     if (!set.size) continue;
 
-    if (code === LOBBY) {
+    if (code === HOME) {
       if (pending.delete(code)) broadcast(code);
       continue;
     }
@@ -136,13 +136,13 @@ function tick() {
     const wasDirty = pending.delete(code);
     if (changed || wasDirty) {
       broadcast(code);
-      if (changed) pending.add(LOBBY); // 방 상태가 바뀌면 로비 목록도 갱신
+      if (changed) pending.add(HOME); // 방 상태가 바뀌면 홈 목록도 갱신
     }
   }
 
-  if (pending.has(LOBBY) && all.get(LOBBY)?.size) {
-    pending.delete(LOBBY);
-    broadcast(LOBBY);
+  if (pending.has(HOME) && all.get(HOME)?.size) {
+    pending.delete(HOME);
+    broadcast(HOME);
   }
 }
 

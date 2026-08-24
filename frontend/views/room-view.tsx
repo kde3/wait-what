@@ -1,7 +1,7 @@
 'use client';
 
-import TopBar from '../components/layout/top-bar';
-import Lobby from '../components/room/lobby';
+import Header from '../components/layout/header';
+import Room from '../components/room/room';
 import GameResults from '../components/game/game-results';
 import {
   ClassicPlay,
@@ -50,11 +50,11 @@ export function RoomView({
 
   return (
     <>
-      <TopBar onBack={onBack} />
+      <Header onBack={onBack} />
       <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6">
         {!live && <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-center text-sm text-danger">{t('reconnecting')}</div>}
-        {state.status === 'lobby' && (
-          <Lobby state={state} playerId={playerId} api={api} busy={busy} error={error} onStarted={onStarted} />
+        {state.status === 'room' && (
+          <Room state={state} playerId={playerId} api={api} busy={busy} error={error} onStarted={onStarted} />
         )}
         {state.status === 'playing' && state.game && Play && (
           <Play state={state} playerId={playerId} api={api} busy={busy} error={error} />

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { ParticipantList } from '../../components/room/participant-list';
-import { lobbyState, teamLobbyState } from '../mocks/room-states';
+import { roomState, teamRoomState } from '../mocks/room-states';
 
 const meta = {
-  title: 'Lobby/Participant List',
+  title: 'Room/Participant List',
   component: ParticipantList,
   args: { busy: false, onJoinTeam: () => undefined },
   decorators: [(Story) => <div className="max-w-xs p-6"><Story /></div>],
@@ -11,5 +11,5 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = { args: { state: lobbyState } };
-export const Teams: Story = { args: { state: teamLobbyState } };
+export const Default: Story = { args: { state: roomState } };
+export const Teams: Story = { args: { state: teamRoomState } };

@@ -3,7 +3,7 @@ import { Phone, Zap, Users } from 'pixelarticons/react';
 import { ModeButton } from '../../components/room/mode-button';
 
 const meta = {
-  title: 'UI/ModeButton',
+  title: 'Room/Mode Button',
   component: ModeButton,
   parameters: {
     layout: 'centered',
@@ -35,7 +35,7 @@ export const Disabled: Story = {
   args: { isDisabled: true },
 };
 
-/** 실제 로비처럼 여러 개를 격자로 놓았을 때 */
+/** 실제 룸 화면처럼 여러 개를 격자로 놓았을 때 */
 export const InGrid: Story = {
   decorators: [
     (Story) => (

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { TimerBar } from '../../components/game/timer-bar';
 
 const meta = {
-  title: 'UI/TimerBar',
+  title: 'Game/Timer Bar',
   component: TimerBar,
   parameters: {
     layout: 'centered',

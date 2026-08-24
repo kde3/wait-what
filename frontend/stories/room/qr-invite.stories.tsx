@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import QrInvite from '../../components/room/qr-invite';
 
 const meta = {
-  title: 'UI/QrInvite',
+  title: 'Room/QR Invite',
   component: QrInvite,
   parameters: { layout: 'centered' },
   decorators: [

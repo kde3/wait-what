@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { ProfileAvatar } from '../../components/ui/profile-avatar';
+import { ProfileAvatar } from '../../components/home/profile-avatar';
 
 const CHARACTERS = [
   'blueberry',
@@ -13,7 +13,7 @@ const CHARACTERS = [
 ];
 
 const meta = {
-  title: 'UI/ProfileAvatar',
+  title: 'Home/Profile Avatar',
   component: ProfileAvatar,
   parameters: { layout: 'centered' },
   decorators: [

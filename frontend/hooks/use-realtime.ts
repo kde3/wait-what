@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiUrl, websocketUrl } from '../lib/backend-url';
 
-const LOBBY = '@LOBBY';
+const HOME = '@HOME';
 
 // 웹소켓으로 채널을 구독하고, 연결이 안 되거나 끊기면 폴링으로 자동 폴백한다.
 // onMessage는 ref로 잡아두어 콜백이 바뀌어도 재연결하지 않는다.
@@ -121,8 +121,8 @@ export function useRoomState(code, playerId, enabled) {
   return { state, live, gone, refresh: fetchState };
 }
 
-// 로비 공개방 목록 구독
-export function useLobbyRooms() {
+// 홈 공개방 목록 구독
+export function useHomeRooms() {
   const [rooms, setRooms] = useState([]);
 
   const fetchRooms = useCallback(async () => {
@@ -133,14 +133,14 @@ export function useLobbyRooms() {
   }, []);
 
   const onMessage = useCallback((msg) => {
-    if (msg.type === 'lobby') setRooms(msg.rooms ?? []);
+    if (msg.type === 'home') setRooms(msg.rooms ?? []);
   }, []);
 
   useEffect(() => {
     fetchRooms();
   }, [fetchRooms]);
 
-  const live = useChannel(LOBBY, '', { onMessage, poll: fetchRooms, pollMs: 4000, enabled: true });
+  const live = useChannel(HOME, '', { onMessage, poll: fetchRooms, pollMs: 4000, enabled: true });
 
   return { rooms, live };
 }

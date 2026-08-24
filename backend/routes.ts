@@ -16,7 +16,7 @@ import {
   unsubmitAction,
 } from './lib/store.js';
 import { buildState } from './lib/serialize.js';
-import { getActiveRoomPlayerCounts, LOBBY, touch } from './lib/realtime.js';
+import { getActiveRoomPlayerCounts, HOME, touch } from './lib/realtime.js';
 
 export const apiRouter = Router();
 
@@ -36,7 +36,7 @@ apiRouter.post('/rooms', (req, res) => {
     password: req.body?.password,
     lang: req.body?.lang,
   });
-  touch(LOBBY);
+  touch(HOME);
   res.json({ code: room.code, playerId });
 });
 
@@ -46,8 +46,20 @@ apiRouter.post('/rooms/:code/join', (req, res) => {
   const result = joinRoom(req.params.code, nickname, req.body?.password);
   if (result.error) return res.status(400).json({ error: result.error });
   touch(result.room.code);
-  touch(LOBBY);
+  touch(HOME);
   res.json({ code: result.room.code, playerId: result.playerId });
+});
+
+apiRouter.get('/rooms/:code/info', (req, res) => {
+  const room = roomOr404(req, res);
+  if (!room) return;
+  res.json({
+    code: room.code,
+    name: room.name,
+    isPublic: room.isPublic,
+    status: room.status,
+    playerCount: room.players.length,
+  });
 });
 
 apiRouter.get('/rooms/:code/state', (req, res) => {
@@ -63,7 +75,7 @@ apiRouter.post('/rooms/:code/config', (req, res) => {
   const result = configRoom(room, req.body?.playerId, req.body?.patch ?? {});
   if (result.error) return res.status(400).json({ error: result.error });
   touch(req.params.code);
-  touch(LOBBY);
+  touch(HOME);
   res.json({ ok: true });
 });
 
@@ -82,7 +94,7 @@ apiRouter.post('/rooms/:code/start', (req, res) => {
   const result = startGame(room, req.body?.playerId);
   if (result.error) return res.status(400).json({ error: result.error });
   touch(req.params.code);
-  touch(LOBBY);
+  touch(HOME);
   res.json({ ok: true });
 });
 

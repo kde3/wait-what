@@ -21,6 +21,29 @@ function OptionSelect({ value, values, disabled, suffix = '', onChange }: any) {
   );
 }
 
+// HeroUI Switch는 합성 컴포넌트라 자식을 주지 않으면 빈 span만 남아 화면에 아무것도 안 보인다.
+function OptionSwitch({ isSelected, isDisabled, label, onChange }: any) {
+  return (
+    <Switch isSelected={isSelected} isDisabled={isDisabled} onChange={onChange} aria-label={label}>
+      <Switch.Content>
+        <Switch.Control><Switch.Thumb /></Switch.Control>
+      </Switch.Content>
+    </Switch>
+  );
+}
+
+// 참가자를 인덱스로 고르는 선택기 — playerId는 인증 토큰이라 노출하지 않는다.
+function PlayerSelect({ value, players, disabled, label, onChange }: any) {
+  return (
+    <Select value={String(value)} isDisabled={disabled} onChange={(next) => onChange(Number(next))} className="w-32" aria-label={label}>
+      <Select.Trigger><Select.Value /></Select.Trigger>
+      <Select.Popover><ListBox>
+        {players.map((p: any, i: number) => <ListBox.Item key={i} id={String(i)} textValue={p.nickname}>{p.nickname}</ListBox.Item>)}
+      </ListBox></Select.Popover>
+    </Select>
+  );
+}
+
 const MODE_META = [
   { id: 'classic', Icon: Phone, min: 2 },
   { id: 'speed', Icon: Zap, min: 2 },
@@ -43,7 +66,7 @@ export function modeLabelKey(mode) {
   return MODE_LABEL_KEY[mode] ?? 'modeClassic';
 }
 
-export default function Lobby({ state, playerId, api, busy, error, onStarted }) {
+export default function Room({ state, playerId, api, busy, error, onStarted }) {
   const { t } = useI18n();
   const [showInvite, setShowInvite] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -139,19 +162,33 @@ export default function Lobby({ state, playerId, api, busy, error, onStarted }) 
           {mode === 'speed' && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>{t('optFixedDrawer')}</span>
-              <Switch
+              <OptionSwitch
                 isSelected={o.fixedDrawer}
                 isDisabled={!isHost}
+                label={t('optFixedDrawer')}
                 onChange={(checked) => setOption('fixedDrawer', checked)}
+              />
+            </label>
+          )}
+          {mode === 'speed' && o.fixedDrawer && (
+            <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+              <span>{t('optDrawer')}</span>
+              <PlayerSelect
+                value={o.fixedDrawerIndex}
+                players={state.players}
+                disabled={!isHost}
+                label={t('optDrawer')}
+                onChange={(value: number) => setOption('fixedDrawerIndex', value)}
               />
             </label>
           )}
           {showTeamToggle && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>{t('optTeamMode')}</span>
-              <Switch
+              <OptionSwitch
                 isSelected={o.teamMode}
                 isDisabled={!isHost}
+                label={t('optTeamMode')}
                 onChange={(checked) => setOption('teamMode', checked)}
               />
             </label>
@@ -159,9 +196,10 @@ export default function Lobby({ state, playerId, api, busy, error, onStarted }) 
           {['relay', 'coop'].includes(mode) && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>{t('optScored')}</span>
-              <Switch
+              <OptionSwitch
                 isSelected={o.scored}
                 isDisabled={!isHost}
+                label={t('optScored')}
                 onChange={(checked) => setOption('scored', checked)}
               />
             </label>
@@ -169,9 +207,10 @@ export default function Lobby({ state, playerId, api, busy, error, onStarted }) 
           {mode === 'imposter' && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>{t('optModerator')}</span>
-              <Switch
+              <OptionSwitch
                 isSelected={o.moderator}
                 isDisabled={!isHost}
+                label={t('optModerator')}
                 onChange={(checked) => setOption('moderator', checked)}
               />
             </label>

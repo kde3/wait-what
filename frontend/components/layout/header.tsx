@@ -7,16 +7,16 @@ import { isMuted, setMuted, sfx } from '../../lib/sound';
 import { Select } from '../ui/select';
 import { Button } from '../ui/button';
 import { ArrowLeft, Volume2, VolumeX } from 'pixelarticons/react';
-import { ProfileAvatar } from '../ui/profile-avatar';
-import { ThemeMenu } from './theme-menu';
+import { ProfileAvatar } from '../home/profile-avatar';
+import { ThemeMenu } from '../home/theme-menu';
 
-interface TopBarProps {
+interface HeaderProps {
   nickname?: string;
   onBackToProfile?: () => void;
   onBack?: () => void;
 }
 
-export default function TopBar({ nickname, onBackToProfile, onBack }: TopBarProps) {
+export default function Header({ nickname, onBackToProfile, onBack }: HeaderProps) {
   const { lang, setLang, t } = useI18n();
   const [muted, setMutedState] = useState(true);
 

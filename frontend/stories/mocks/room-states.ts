@@ -1,10 +1,27 @@
-import type { RoomState } from '../../types/room';
+import type { GameMode, RoomState, RoomStatus } from '../../types/room';
 
-export const lobbyState: RoomState = {
+// 홈의 공개방 목록 — 백엔드 listPublicRooms()가 돌려주는 항목 모양
+interface PublicRoomSummary {
+  code: string;
+  name: string;
+  mode: GameMode;
+  status: RoomStatus;
+  players: number;
+}
+
+export const homeRooms: PublicRoomSummary[] = [
+  { code: 'PLAY', name: 'AI 그림 전화방', mode: 'classic', status: 'room', players: 3 },
+  { code: 'RELY', name: '릴레이 연습방', mode: 'relay', status: 'playing', players: 6 },
+  { code: 'IMPS', name: '임포스터 한 판', mode: 'imposter', status: 'room', players: 5 },
+];
+
+export const emptyHomeRooms: PublicRoomSummary[] = [];
+
+export const roomState: RoomState = {
   code: 'PLAY',
   name: 'AI 그림 전화방',
   isPublic: true,
-  status: 'lobby',
+  status: 'room',
   mode: 'classic',
   teamGame: false,
   options: {
@@ -13,6 +30,7 @@ export const lobbyState: RoomState = {
     rounds: 5,
     teamMode: false,
     fixedDrawer: false,
+    fixedDrawerIndex: 0,
     scored: true,
     moderator: false,
   },
@@ -24,11 +42,11 @@ export const lobbyState: RoomState = {
   you: { nickname: '익명 방장', isHost: true, team: null, score: 0 },
 };
 
-export const teamLobbyState: RoomState = {
-  ...lobbyState,
+export const teamRoomState: RoomState = {
+  ...roomState,
   mode: 'relay',
   teamGame: true,
-  options: { ...lobbyState.options, teamMode: true },
+  options: { ...roomState.options, teamMode: true },
   players: [
     { nickname: '익명 방장', isHost: true, team: 0, score: 0 },
     { nickname: '그림 고양이', isHost: false, team: 0, score: 0 },
@@ -39,7 +57,7 @@ export const teamLobbyState: RoomState = {
 };
 
 export const classicPhraseState: RoomState = {
-  ...lobbyState,
+  ...roomState,
   status: 'playing',
   game: {
     kind: 'classic',
@@ -49,12 +67,12 @@ export const classicPhraseState: RoomState = {
     task: { kind: 'phrase' },
     submitted: false,
     draft: null,
-    players: lobbyState.players.map((player) => ({ nickname: player.nickname, submitted: false })),
+    players: roomState.players.map((player) => ({ nickname: player.nickname, submitted: false })),
   },
 };
 
 export const classicDrawingState: RoomState = {
-  ...lobbyState,
+  ...roomState,
   status: 'playing',
   game: {
     kind: 'classic',
@@ -64,7 +82,7 @@ export const classicDrawingState: RoomState = {
     task: { kind: 'draw', sourceText: '우주복을 입은 고양이가 라면을 먹는 모습' },
     submitted: false,
     draft: null,
-    players: lobbyState.players.map((player) => ({ nickname: player.nickname, submitted: false })),
+    players: roomState.players.map((player) => ({ nickname: player.nickname, submitted: false })),
   },
 };
 
@@ -80,7 +98,7 @@ export const classicGeneratedDrawingState: RoomState = {
 };
 
 export const classicFollowingPhraseState: RoomState = {
-  ...lobbyState,
+  ...roomState,
   status: 'playing',
   game: {
     kind: 'classic',
@@ -90,12 +108,12 @@ export const classicFollowingPhraseState: RoomState = {
     task: { kind: 'guess', sourceImage: '/images/mock-image.png' },
     submitted: false,
     draft: null,
-    players: lobbyState.players.map((player) => ({ nickname: player.nickname, submitted: false })),
+    players: roomState.players.map((player) => ({ nickname: player.nickname, submitted: false })),
   },
 };
 
 export const classicResultState: RoomState = {
-  ...lobbyState,
+  ...roomState,
   status: 'finished',
   results: {
     kind: 'classic',

@@ -1,5 +1,5 @@
 // 인메모리 게임 상태 저장소 (MVP용 — 서버 재시작 시 초기화됨)
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { WORDS } from './words';
 import { LANGS } from './langs';
 
@@ -18,7 +18,8 @@ export const DEFAULT_OPTIONS = {
   imageSeconds: 90, // 그림(프롬프트+생성) 제한시간
   rounds: 5, // 스피드 퀴즈 라운드 수
   teamMode: false, // 개인전/팀전 (speed, relay, coop)
-  fixedDrawer: false, // 스피드 퀴즈: 고정된 대표 한 명(방장)이 계속 그림
+  fixedDrawer: false, // 스피드 퀴즈: 돌아가며 그리지 않고 한 명이 계속 그림
+  fixedDrawerIndex: 0, // 그 한 명이 누구인지 — room.players 인덱스, 0은 방장
   scored: true, // relay/coop: AI 평가 여부
   moderator: false, // imposter: 사회자(방장 관전) 여부
 };
@@ -30,7 +31,7 @@ function randomCode(len = 4) {
 }
 
 function randomId() {
-  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+  return randomBytes(16).toString('base64url');
 }
 
 function shuffle(arr) {
@@ -96,7 +97,7 @@ export function createRoom(nickname, { name, password, lang }: Record<string, an
     isPublic: !cleanPassword,
     passwordHash: cleanPassword ? hashPassword(cleanPassword) : '',
     lang: LANGS.includes(lang) ? lang : 'ko',
-    status: 'lobby', // lobby | playing | finished
+    status: 'room', // room | playing | finished
     mode: 'classic',
     options: { ...DEFAULT_OPTIONS },
     players: [{ id: hostId, nickname, isHost: true, team: null, score: 0 }],
@@ -141,7 +142,7 @@ export function joinRoom(code, nickname, password = '') {
   const room = getRoom(code);
   if (!room) return { error: 'errRoomNotFound' };
   if (room.passwordHash && room.passwordHash !== hashPassword(password ?? '')) return { error: 'errWrongPassword' };
-  if (room.status !== 'lobby') return { error: 'errAlreadyStarted' };
+  if (room.status !== 'room') return { error: 'errAlreadyStarted' };
   if (room.players.length >= 10) return { error: 'errRoomFull' };
 
   const playerId = randomId();
@@ -172,7 +173,7 @@ function ensureTeams(room) {
 export function configRoom(room, playerId, patch: Record<string, any> = {}) {
   const player = room.players.find((p) => p.id === playerId);
   if (!player?.isHost) return { error: 'errHostOnly' };
-  if (room.status !== 'lobby') return { error: 'errAlreadyStarted' };
+  if (room.status !== 'room') return { error: 'errAlreadyStarted' };
 
   if (patch.mode !== undefined) {
     if (!MODES.includes(patch.mode)) return { error: 'errBadMode' };
@@ -190,6 +191,9 @@ export function configRoom(room, playerId, patch: Record<string, any> = {}) {
     if (o.rounds !== undefined) opt.rounds = clampInt(o.rounds, 1, 20, opt.rounds);
     if (o.teamMode !== undefined) opt.teamMode = !!o.teamMode;
     if (o.fixedDrawer !== undefined) opt.fixedDrawer = !!o.fixedDrawer;
+    if (o.fixedDrawerIndex !== undefined) {
+      opt.fixedDrawerIndex = clampInt(o.fixedDrawerIndex, 0, room.players.length - 1, opt.fixedDrawerIndex);
+    }
     if (o.scored !== undefined) opt.scored = !!o.scored;
     if (o.moderator !== undefined) opt.moderator = !!o.moderator;
   }
@@ -205,7 +209,7 @@ function clampInt(v, min, max, fallback) {
 }
 
 export function setTeam(room, playerId, team) {
-  if (room.status !== 'lobby') return { error: 'errAlreadyStarted' };
+  if (room.status !== 'room') return { error: 'errAlreadyStarted' };
   if (!isTeamGame(room)) return { error: 'errNotTeamGame' };
   const player = room.players.find((p) => p.id === playerId);
   if (!player) return { error: 'errNotPlayer' };
@@ -219,7 +223,7 @@ export function setTeam(room, playerId, team) {
 export function startGame(room, playerId) {
   const player = room.players.find((p) => p.id === playerId);
   if (!player?.isHost) return { error: 'errHostOnly' };
-  if (room.status !== 'lobby') return { error: 'errAlreadyStarted' };
+  if (room.status !== 'room') return { error: 'errAlreadyStarted' };
 
   const n = room.players.length;
   const min = { classic: 1, speed: 2, speed_team: 2, relay: 1, coop: 1, imposter: 3 }[room.mode];
@@ -321,8 +325,9 @@ function initSpeed(room) {
 function speedNewRound(room, g) {
   g.keyword = pickWord(g.used);
   g.used.push(g.keyword.ko);
+  // 지정된 사람이 어떤 이유로든 없으면 방장이 대신 그린다.
   g.drawerId = room.options.fixedDrawer
-    ? room.players.find((p) => p.isHost).id
+    ? (room.players[room.options.fixedDrawerIndex] ?? room.players[0]).id
     : g.order[g.round % g.order.length];
   g.phase = 'draw'; // draw | guess | reveal
   g.draftUrl = null;

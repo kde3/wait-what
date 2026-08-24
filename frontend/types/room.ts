@@ -1,5 +1,5 @@
 export type GameMode = 'classic' | 'speed' | 'speed_team' | 'relay' | 'coop' | 'imposter';
-export type RoomStatus = 'lobby' | 'playing' | 'finished';
+export type RoomStatus = 'room' | 'playing' | 'finished';
 
 export interface Player {
   nickname: string;
@@ -14,6 +14,8 @@ export interface RoomOptions {
   rounds: number;
   teamMode: boolean;
   fixedDrawer: boolean;
+  /** 고정 출제자가 누구인지 — players 배열의 인덱스 */
+  fixedDrawerIndex: number;
   scored: boolean;
   moderator: boolean;
 }
