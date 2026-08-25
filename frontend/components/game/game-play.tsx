@@ -6,10 +6,11 @@ import { useI18n } from '../i18n-provider';
 import { wordText } from '../../lib/words';
 import { sfx } from '../../lib/sound';
 import { useCountdown } from '../../hooks/use-countdown';
-import { PromptPanel, GuessPanel, TeamBadge } from './game-bits';
+import { PromptPanel, GuessPanel, TeamBadge, SubmittedNotice } from './game-bits';
 import { TimerBar } from './timer-bar';
 import { Input, Surface } from '@heroui/react';
 import { Button } from '../ui/button';
+import { apiUrl } from '../../lib/backend-url';
 
 // 프롬프트/생성이미지 로컬 상태 — resetKey가 바뀌면 서버 draft로 초기화
 function useDraft(draft, resetKey) {
@@ -62,7 +63,7 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
   const { generating, generate, cancelGenerate } = useGenerate(api, playerId, setImageUrl);
   const remaining = useCountdown(g.remaining, `${g.round}`);
 
-  useEffect(() => setText(''), [g.round, g.task.kind]);
+  useEffect(() => setText(g.draft?.text ?? ''), [g.round, g.task.kind]);
 
   const isFirstPhrase = g.round === 1 && g.task.kind === 'phrase';
   const suggestedPhrase = phraseSuggestion(t);
@@ -89,20 +90,9 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
         {submittedCount} / {g.players.length}
       </div>
 
-      {g.submitted ? (
-        <div className="rounded-xl border bg-surface p-6 text-center text-foreground shadow-sm">
-          <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
-          <p>
-            <b>{t('submitted')}</b> {t('waitingOthers')}
-          </p>
-          <p className="text-center text-sm text-muted">{t('waitingOthersHint')}</p>
-          <Button variant="outline" className="mt-4" onClick={() => api('unsubmit', { playerId })} isDisabled={busy}>
-            {t('cancelSubmit')}
-          </Button>
-          {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-        </div>
-      ) : (
-        <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+      {g.submitted && <SubmittedNotice onCancel={() => api('unsubmit', { playerId })} busy={busy} />}
+
+      <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
           {g.task.kind === 'phrase' && (
             <div className="space-y-4">
               <h2>{t('phraseTitle')}</h2>
@@ -113,12 +103,15 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
                 autoComplete="off"
                 placeholder={suggestedPhrase}
                 value={text}
+                disabled={g.submitted}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submit()}
               />
-              <Button className="w-full" onClick={submit} isDisabled={busy || (!isFirstPhrase && !text.trim())}>
-                {t('submit')}
-              </Button>
+              {!g.submitted && (
+                <Button className="w-full" onClick={submit} isDisabled={busy || (!isFirstPhrase && !text.trim())}>
+                  {t('submit')}
+                </Button>
+              )}
             </div>
           )}
 
@@ -135,6 +128,7 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
                 imageUrl={imageUrl}
                 generating={generating}
                 busy={busy}
+                locked={g.submitted}
                 onGenerate={() => generate(prompt)}
                 onCancelGenerate={cancelGenerate}
                 onSubmit={submit}
@@ -146,7 +140,7 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
             <div className="space-y-4">
               <h2>{t('guessTitle')}</h2>
               {g.task.sourceImage ? (
-                <img className="w-full rounded-lg border object-cover" src={g.task.sourceImage} alt="AI" />
+                <img className="w-full rounded-lg border object-cover" src={apiUrl(g.task.sourceImage)} alt="AI" />
               ) : (
                 <p className="text-center text-sm text-muted">{t('guessHint')}</p>
               )}
@@ -157,17 +151,19 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
                 autoComplete="off"
                 placeholder={t('guessPlaceholder')}
                 value={text}
+                disabled={g.submitted}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submit()}
               />
-              <Button className="w-full" onClick={submit} isDisabled={busy || !text.trim()}>
-                {t('submit')}
-              </Button>
+              {!g.submitted && (
+                <Button className="w-full" onClick={submit} isDisabled={busy || !text.trim()}>
+                  {t('submit')}
+                </Button>
+              )}
             </div>
           )}
-          {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-        </div>
-      )}
+        {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
+      </div>
     </>
   );
 }
@@ -206,7 +202,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
           <p className="my-2 text-sm">
             {t('keywordWas')}: <b>{wordText(g.keyword, lang)}</b>
           </p>
-          {g.image && <img className="w-full rounded-lg border object-cover" src={g.image} alt="AI" />}
+          {g.image && <img className="w-full rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" />}
         </div>
       ) : g.youAreDrawer ? (
         <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
@@ -227,7 +223,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
             />
           ) : (
             <>
-              {g.image && <img className="w-full rounded-lg border object-cover" src={g.image} alt="AI" />}
+              {g.image && <img className="w-full rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" />}
               <GuessPanel guesses={g.guesses} disabled busy={busy} />
             </>
           )}
@@ -243,7 +239,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
           ) : (
             <>
               <h2>{t('speedGuessTitle')}</h2>
-              {g.image && <img className="w-full rounded-lg border object-cover" src={g.image} alt="AI" />}
+              {g.image && <img className="w-full rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" />}
               <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
             </>
           )}
@@ -302,7 +298,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
               g.teams[ti].image ? (
                 <div key={ti} className="space-y-2 text-center">
                   <TeamBadge team={ti} />
-                  <img className="w-full rounded-lg border object-cover" src={g.teams[ti].image} alt="AI" />
+                  <img className="w-full rounded-lg border object-cover" src={apiUrl(g.teams[ti].image)} alt="AI" />
                 </div>
               ) : null,
             )}
@@ -324,7 +320,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
               <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground"><Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(g.keyword, lang)}</div>
               {mine.imageReady ? (
                 <>
-                  <img className="w-full rounded-lg border object-cover" src={mine.image} alt="AI" />
+                  <img className="w-full rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" />
                   <GuessPanel guesses={g.guesses} disabled busy={busy} />
                 </>
               ) : (
@@ -344,7 +340,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
             </>
           ) : mine.imageReady ? (
             <>
-              <img className="w-full rounded-lg border object-cover" src={mine.image} alt="AI" />
+              <img className="w-full rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" />
               <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
             </>
           ) : (
@@ -395,7 +391,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
           {gi === g.yourGroup && group.youAreCurrent && !group.done ? (
             <>
               <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
-              {group.currentImage && !imageUrl && <img className="w-full rounded-lg border object-cover" src={group.currentImage} alt="AI" />}
+              {group.currentImage && !imageUrl && <img className="w-full rounded-lg border object-cover" src={apiUrl(group.currentImage)} alt="AI" />}
               <PromptPanel
                 prompt={prompt}
                 setPrompt={setPrompt}
@@ -417,7 +413,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
                 </p>
               )}
               {group.currentImage ? (
-                <img className="w-full rounded-lg border object-cover" src={group.currentImage} alt="AI" />
+                <img className="w-full rounded-lg border object-cover" src={apiUrl(group.currentImage)} alt="AI" />
               ) : (
                 <div className="py-8 text-center text-sm text-muted">
                   <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
@@ -428,7 +424,7 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
           {group.entries.length > 0 && (
             <div className="mt-3 flex gap-2 overflow-x-auto">
               {group.entries.map((e, i) =>
-                e.url ? <img key={i} src={e.url} alt={e.nickname} title={e.nickname} /> : null,
+                e.url ? <img key={i} src={apiUrl(e.url)} alt={e.nickname} title={e.nickname} /> : null,
               )}
             </div>
           )}
@@ -440,6 +436,12 @@ export function RelayPlay({ state, playerId, api, busy, error }) {
 }
 
 // ── 협동 ────────────────────────────────────────────────
+
+function cellSpan(group, index) {
+  const remainder = group.cells.length % group.cols;
+  if (!remainder || index < group.cells.length - remainder) return 1;
+  return group.cols % remainder === 0 ? group.cols / remainder : 1;
+}
 
 export function CoopPlay({ state, playerId, api, busy, error }) {
   const { t, lang } = useI18n();
@@ -466,9 +468,13 @@ export function CoopPlay({ state, playerId, api, busy, error }) {
           )}
           <div className="grid overflow-hidden rounded-lg border" style={{ gridTemplateColumns: `repeat(${group.cols}, 1fr)` }}>
             {group.cells.map((cell, ci) => (
-              <div key={ci} className={cell.you ? 'aspect-square overflow-hidden border-2 border-accent' : 'aspect-square overflow-hidden border'}>
+              <div
+                key={ci}
+                style={{ gridColumn: `span ${cellSpan(group, ci)}`, aspectRatio: String(cellSpan(group, ci)) }}
+                className={cell.you ? 'overflow-hidden border-2 border-accent' : 'overflow-hidden border'}
+              >
                 {cell.url ? (
-                  <img src={cell.url} alt={cell.nickname} />
+                  <img src={apiUrl(cell.url)} alt={cell.nickname} />
                 ) : (
                   <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">
                     <span>{cell.submitted ? <Check className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : <Hourglass className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" />}</span>
@@ -483,30 +489,24 @@ export function CoopPlay({ state, playerId, api, busy, error }) {
 
       <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
         <h2><Users className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('coopTitle')}</h2>
-        {g.you.submitted ? (
-          <div className="py-8 text-center text-sm text-muted">
-            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
-            <p>
-              <b>{t('submitted')}</b> {t('waitingOthers')}
-            </p>
-            <Button variant="outline" className="mt-3" onClick={() => api('unsubmit', { playerId })} isDisabled={busy}>
-              {t('cancelSubmit')}
-            </Button>
+        {g.you.submitted && (
+          <div className="mb-3">
+            <SubmittedNotice onCancel={() => api('unsubmit', { playerId })} busy={busy} />
           </div>
-        ) : (
-          <PromptPanel
-            prompt={prompt}
-            setPrompt={setPrompt}
-            imageUrl={imageUrl}
-            generating={generating}
-            busy={busy}
-            onGenerate={() => generate(prompt)}
-            onCancelGenerate={cancelGenerate}
-            onSubmit={async () => {
-              if (await api('submit', { playerId })) sfx.submit();
-            }}
-          />
         )}
+        <PromptPanel
+          prompt={prompt}
+          setPrompt={setPrompt}
+          imageUrl={imageUrl}
+          generating={generating}
+          busy={busy}
+          locked={g.you.submitted}
+          onGenerate={() => generate(prompt)}
+          onCancelGenerate={cancelGenerate}
+          onSubmit={async () => {
+            if (await api('submit', { playerId })) sfx.submit();
+          }}
+        />
         {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
       </div>
     </>
@@ -568,7 +568,7 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {g.entries.map((e, i) => (
               <div key={i} className="space-y-2 rounded-lg border p-2 text-center text-sm">
-                {e.url ? <img src={e.url} alt={e.nickname} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
+                {e.url ? <img src={apiUrl(e.url)} alt={e.nickname} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
                 <span>{e.nickname}</span>
               </div>
             ))}

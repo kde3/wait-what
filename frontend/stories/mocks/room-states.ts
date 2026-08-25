@@ -25,6 +25,7 @@ export const roomState: RoomState = {
   mode: 'classic',
   teamGame: false,
   options: {
+    difficulty: 'normal',
     textSeconds: 45,
     imageSeconds: 90,
     rounds: 5,
@@ -35,7 +36,7 @@ export const roomState: RoomState = {
     moderator: false,
   },
   players: [
-    { nickname: '익명 방장', isHost: true, team: null, score: 0 },
+    { nickname: '익명 방장', isHost: true, team: null, score: 0, you: true },
     { nickname: '그림 고양이', isHost: false, team: null, score: 0 },
     { nickname: '초록 로봇', isHost: false, team: null, score: 0 },
   ],
@@ -48,7 +49,7 @@ export const teamRoomState: RoomState = {
   teamGame: true,
   options: { ...roomState.options, teamMode: true },
   players: [
-    { nickname: '익명 방장', isHost: true, team: 0, score: 0 },
+    { nickname: '익명 방장', isHost: true, team: 0, score: 0, you: true },
     { nickname: '그림 고양이', isHost: false, team: 0, score: 0 },
     { nickname: '초록 로봇', isHost: false, team: 1, score: 0 },
     { nickname: '라면 화가', isHost: false, team: 1, score: 0 },

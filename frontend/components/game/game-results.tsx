@@ -8,6 +8,7 @@ import { wordText } from '../../lib/words';
 import { TeamBadge } from './game-bits';
 import { sfx } from '../../lib/sound';
 import { Button } from '../ui/button';
+import { apiUrl } from '../../lib/backend-url';
 
 // 게임 결과 공유 텍스트 생성 (키워드/프롬프트 포함)
 function buildShareText(state, results, t, lang) {
@@ -91,7 +92,7 @@ function ShareButton({ state, results }) {
   );
 }
 
-export default function GameResults({ state }) {
+export default function GameResults({ state, playerId, api, busy, onLeave }: any) {
   const { t, lang } = useI18n();
   const r = state.results;
   if (!r) return null;
@@ -118,7 +119,7 @@ export default function GameResults({ state }) {
                   <div className={i === 0 ? 'rounded-lg border border-accent/30 bg-accent/5 p-4' : 'rounded-lg bg-surface-secondary p-4'}>{item.text || t('emptyValue')}</div>
                 ) : item.url ? (
                   <>
-                    <img className="w-full rounded-lg border object-cover" src={item.url} alt="AI" />
+                    <img className="w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt="AI" />
                     {item.prompt && (
                       <p className="text-sm text-muted">
                         {t('promptLabel')}: {item.prompt}
@@ -170,7 +171,7 @@ export default function GameResults({ state }) {
                   <Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(h.keyword, lang)} — <Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {h.drawer} →{' '}
                   {h.winner ? <><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {h.winner}</> : t('noWinner')}
                 </div>
-                {h.url && <img className="w-full rounded-lg border object-cover" src={h.url} alt="AI" />}
+                {h.url && <img className="w-full rounded-lg border object-cover" src={apiUrl(h.url)} alt="AI" />}
                 {h.prompt && (
                   <p className="text-sm text-muted">
                     {t('promptLabel')}: {h.prompt}
@@ -208,7 +209,7 @@ export default function GameResults({ state }) {
                     h.urls[ti] ? (
                       <div key={ti} className="space-y-2 text-center">
                         <TeamBadge team={ti} />
-                        <img className="w-full rounded-lg border object-cover" src={h.urls[ti]} alt="AI" />
+                        <img className="w-full rounded-lg border object-cover" src={apiUrl(h.urls[ti])} alt="AI" />
                       </div>
                     ) : null,
                   )}
@@ -235,13 +236,13 @@ export default function GameResults({ state }) {
               )}
               {g.score != null && (
                 <div className="mb-3 rounded-lg bg-surface-secondary p-3 text-center font-medium">
-                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {aiComment(lang, g.score)}
+                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {g.comment ?? aiComment(lang, g.score)}
                 </div>
               )}
               {g.finalImage && (
                 <>
                   <p className="text-sm text-muted">{t('finalImage')}</p>
-                  <img className="w-full rounded-lg border object-cover" src={g.finalImage} alt="AI" />
+                  <img className="w-full rounded-lg border object-cover" src={apiUrl(g.finalImage)} alt="AI" />
                 </>
               )}
               <p className="text-sm text-muted">{t('relayHistory')}</p>
@@ -255,7 +256,7 @@ export default function GameResults({ state }) {
                       {t('promptLabel')}: {e.prompt}
                     </p>
                   )}
-                  {e.url && <img className="w-full max-w-xs rounded-lg border object-cover" src={e.url} alt="AI" />}
+                  {e.url && <img className="w-full max-w-xs rounded-lg border object-cover" src={apiUrl(e.url)} alt="AI" />}
                 </div>
               ))}
             </div>
@@ -279,14 +280,14 @@ export default function GameResults({ state }) {
               )}
               {g.score != null && (
                 <div className="mb-3 rounded-lg bg-surface-secondary p-3 text-center font-medium">
-                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {aiComment(lang, g.score)}
+                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {g.comment ?? aiComment(lang, g.score)}
                 </div>
               )}
               <div className="grid overflow-hidden rounded-lg border" style={{ gridTemplateColumns: `repeat(${g.cols}, 1fr)` }}>
                 {g.cells.map((cell, ci) => (
                   <div key={ci} className="aspect-square overflow-hidden border">
                     {cell.url ? (
-                      <img src={cell.url} alt={cell.nickname} title={`${cell.nickname}: ${cell.prompt ?? ''}`} />
+                      <img src={apiUrl(cell.url)} alt={cell.nickname} title={`${cell.nickname}: ${cell.prompt ?? ''}`} />
                     ) : (
                       <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{cell.nickname}</div>
                     )}
@@ -325,7 +326,7 @@ export default function GameResults({ state }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {r.entries.map((e, i) => (
                 <div key={i} className="space-y-2 rounded-lg border p-2 text-center text-sm">
-                  {e.url ? <img src={e.url} alt={e.nickname} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
+                  {e.url ? <img src={apiUrl(e.url)} alt={e.nickname} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
                   <span>
                     {e.nickname}
                     {e.nickname === r.imposter ? <Eye className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> : null}
@@ -338,11 +339,26 @@ export default function GameResults({ state }) {
       )}
 
       <ShareButton state={state} results={r} />
-      <a href="/">
-        <Button variant="outline" className="mt-2 w-full">
-          {t('playAgain')}
-        </Button>
-      </a>
+      {state.you?.staying ? (
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-3 rounded-lg border bg-surface-secondary px-3 py-2 text-sm text-muted">
+          <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-muted border-t-primary" aria-hidden="true" />
+          <span>
+            {t('stayingWait')} ({state.players.filter((p) => p.staying).length}/{state.players.length})
+          </span>
+          <Button variant="outline" className="h-7 w-auto px-2 text-xs" onClick={onLeave} isDisabled={busy}>
+            {t('leaveRoom')}
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-2 flex gap-2">
+          <Button className="flex-1" onClick={() => api('restart', { playerId })} isDisabled={busy}>
+            {t('stayInRoom')} ({state.players.filter((p) => p.staying).length}/{state.players.length})
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={onLeave} isDisabled={busy}>
+            {t('leaveRoom')}
+          </Button>
+        </div>
+      )}
     </>
   );
 }

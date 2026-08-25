@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Plus } from 'pixelarticons/react';
+import { Plus, Shuffle } from 'pixelarticons/react';
 import { useI18n } from '../components/i18n-provider';
 import Header from '../components/layout/header';
 import { useHomeRooms } from '../hooks/use-realtime';
@@ -78,6 +78,14 @@ export default function HomeView() {
     setRoomName('');
     setSuggestedRoomName(nextName);
     setShowCreate(true);
+  }
+
+  const openRooms = publicRooms.filter((r) => r.status === 'room' && r.players < 10);
+
+  function joinRandomRoom() {
+    if (!openRooms.length) return setError(t('errNoOpenRoom'));
+    const pick = openRooms[Math.floor(Math.random() * openRooms.length)];
+    joinRoom(pick.code);
   }
 
   async function createRoom() {
@@ -213,6 +221,15 @@ export default function HomeView() {
 
         <Card className="p-5">
           <h2>{t('publicRooms')}</h2>
+          <Button
+            className="mb-3 w-full"
+            variant="secondary"
+            onClick={joinRandomRoom}
+            isDisabled={busy || openRooms.length === 0}
+          >
+            <Shuffle className="size-4" aria-hidden="true" />
+            {t('joinRandomRoom')}
+          </Button>
           {publicRooms.length === 0 ? (
             <p className="text-center text-sm text-muted">{t('noPublicRooms')}</p>
           ) : (

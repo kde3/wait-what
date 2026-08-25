@@ -2,8 +2,7 @@ import { createServer } from 'node:http';
 import express from 'express';
 import { WebSocket, WebSocketServer } from 'ws';
 import { apiRouter } from './routes.js';
-import { deleteRoom } from './lib/store.js';
-import { HOME, touch } from './lib/realtime.js';
+import { HOME, touch, scheduleLeave, cancelLeave, hasLiveSocket } from './lib/realtime.js';
 
 const port = Number.parseInt(process.env.PORT || '3000', 10);
 // HOSTNAME은 Git Bash와 컨테이너 런타임이 제멋대로 채우므로 쓰지 않는다. 미지정 시 전 인터페이스(IPv4+IPv6) 바인딩.
@@ -16,7 +15,6 @@ type GameSocket = WebSocket & { gpCode?: string; gpPlayerId?: string; gpAlive?: 
 
 const sockets: Map<string, Set<GameSocket>> = globalThis.__gpSockets ?? (globalThis.__gpSockets = new Map());
 const dirty: Set<string> = globalThis.__gpDirty ?? (globalThis.__gpDirty = new Set());
-const emptyRoomTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let server;
 
 async function main() {
@@ -61,26 +59,15 @@ async function main() {
     sockets.set(code, roomSockets);
     roomSockets.add(ws);
     touch(HOME);
-    const pendingRemoval = emptyRoomTimers.get(code);
-    if (pendingRemoval) {
-      clearTimeout(pendingRemoval);
-      emptyRoomTimers.delete(code);
-    }
+    if (ws.gpPlayerId) cancelLeave(code, ws.gpPlayerId);
     dirty.add(code);
     ws.on('pong', () => { ws.gpAlive = true; });
     ws.on('error', () => {});
     ws.on('close', () => {
       roomSockets.delete(ws);
       touch(HOME);
-      if (!roomSockets.size) {
-        sockets.delete(code);
-        const timer = setTimeout(() => {
-          emptyRoomTimers.delete(code);
-          if (sockets.get(code)?.size) return;
-          if (deleteRoom(code)) touch(HOME);
-        }, 5_000);
-        emptyRoomTimers.set(code, timer);
-      }
+      if (ws.gpPlayerId && !hasLiveSocket(code, ws.gpPlayerId)) scheduleLeave(code, ws.gpPlayerId);
+      if (!roomSockets.size) sockets.delete(code);
     });
   });
   });

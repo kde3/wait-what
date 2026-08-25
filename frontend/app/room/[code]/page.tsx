@@ -11,6 +11,7 @@ import { apiUrl } from '../../../lib/backend-url';
 import { Input, Label, TextField, toast } from '@heroui/react';
 import { Button } from '../../../components/ui/button';
 import { ProfileSetup } from '../../../views/profile-setup-view';
+import { ExitModal } from '../../../components/room/exit-modal';
 
 export default function Room({ params }: any) {
   const router = useRouter();
@@ -56,11 +57,7 @@ export default function Room({ params }: any) {
   const needsPassword = infoLoaded && !!roomInfo && !roomInfo.isPublic;
 
   // 웹소켓으로 상태를 받고, 연결이 끊기면 훅이 알아서 폴링으로 버틴다.
-  const { state, live, gone, refresh: fetchState } = useRoomState(code, playerId, checkedStorage && !!playerId);
-
-  useEffect(() => {
-    if (gone) toast.danger(t('errRoomNotFound'), { timeout: 5000 });
-  }, [gone, t]);
+  const { state, live, gone, disconnected, refresh: fetchState } = useRoomState(code, playerId, checkedStorage && !!playerId);
 
   // 상태 전환 효과음 + 배경음악
   useEffect(() => {
@@ -131,6 +128,23 @@ export default function Room({ params }: any) {
   }
 
   if (!checkedStorage) return null;
+
+  const dropped = !!state && !state.you;
+
+  if (gone || disconnected || dropped) {
+    const goHome = () => {
+      if (dropped) sessionStorage.removeItem(`gp_player_${code}`);
+      router.push('/');
+    };
+    const title = gone ? t('roomGoneTitle') : disconnected ? t('disconnectedTitle') : t('droppedTitle');
+    const message = gone ? t('errRoomNotFound') : disconnected ? t('errDisconnected') : t('errDropped');
+    return (
+      <>
+        <Header onBack={goHome} />
+        <ExitModal isOpen title={title} message={message} onGoHome={goHome} />
+      </>
+    );
+  }
 
   if (!playerId) {
     if (!nickname) {
@@ -205,6 +219,10 @@ export default function Room({ params }: any) {
       error={error}
       live={live}
       onBack={() => router.push('/')}
+      onLeave={() => {
+        sessionStorage.removeItem(`gp_player_${code}`);
+        router.push('/');
+      }}
       onStarted={fetchState}
     />
   );

@@ -1,6 +1,8 @@
 const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').replace(/\/+$/, '');
 
 export function apiUrl(path: string) {
+  if (!path) return path;
+  if (/^(https?:|data:|blob:)/.test(path)) return path;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return backendUrl ? `${backendUrl}${normalizedPath}` : normalizedPath;
 }

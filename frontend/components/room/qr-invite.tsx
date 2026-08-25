@@ -10,11 +10,8 @@ export default function QrInvite({ url, size = 240 }) {
     if (!canvasRef.current || !url) return;
     QRCode.toCanvas(canvasRef.current, url, {
       width: size,
-      margin: 1,
-      color: {
-        dark: getComputedStyle(document.documentElement).getPropertyValue('--palette-ink').trim() || '#080d2a',
-        light: getComputedStyle(document.documentElement).getPropertyValue('--palette-surface-card').trim() || '#ffffff',
-      },
+      margin: 2,
+      color: { dark: '#000000', light: '#ffffff' },
     }).catch(() => {});
   }, [size, url]);
 

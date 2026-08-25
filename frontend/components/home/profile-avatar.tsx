@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Avatar } from '@heroui/react';
+import { Reload } from 'pixelarticons/react';
 
 const CHARACTER_IMAGES = [
   '/images/characters/blueberry.png',
@@ -16,13 +17,17 @@ const CHARACTER_IMAGES = [
 
 const PROFILE_IMAGE_STORAGE_KEY = 'garticphone-profile-image';
 
+const PROFILE_IMAGE_EVENT = 'gp:profile-image';
+
 interface ProfileAvatarProps {
   nickname?: string;
   imageUrl?: string;
   className?: string;
+  changeable?: boolean;
+  changeLabel?: string;
 }
 
-export function ProfileAvatar({ nickname = '익명', imageUrl, className }: ProfileAvatarProps) {
+export function ProfileAvatar({ nickname = '익명', imageUrl, className, changeable = false, changeLabel = '프로필 변경' }: ProfileAvatarProps) {
   const [selectedImage, setSelectedImage] = useState(imageUrl ?? '');
 
   useEffect(() => {
@@ -35,17 +40,44 @@ export function ProfileAvatar({ nickname = '익명', imageUrl, className }: Prof
     const savedImage = window.sessionStorage.getItem(PROFILE_IMAGE_STORAGE_KEY);
     if (savedImage && CHARACTER_IMAGES.includes(savedImage as (typeof CHARACTER_IMAGES)[number])) {
       setSelectedImage(savedImage);
-      return;
+    } else {
+      const randomImage = CHARACTER_IMAGES[Math.floor(Math.random() * CHARACTER_IMAGES.length)];
+      window.sessionStorage.setItem(PROFILE_IMAGE_STORAGE_KEY, randomImage);
+      setSelectedImage(randomImage);
     }
 
-    const randomImage = CHARACTER_IMAGES[Math.floor(Math.random() * CHARACTER_IMAGES.length)];
-    window.sessionStorage.setItem(PROFILE_IMAGE_STORAGE_KEY, randomImage);
-    setSelectedImage(randomImage);
+    const sync = (event: Event) => setSelectedImage((event as CustomEvent<string>).detail);
+    window.addEventListener(PROFILE_IMAGE_EVENT, sync);
+    return () => window.removeEventListener(PROFILE_IMAGE_EVENT, sync);
   }, [imageUrl]);
 
-  return (
+  function nextImage() {
+    const index = CHARACTER_IMAGES.indexOf(selectedImage as (typeof CHARACTER_IMAGES)[number]);
+    const next = CHARACTER_IMAGES[(index + 1) % CHARACTER_IMAGES.length];
+    window.sessionStorage.setItem(PROFILE_IMAGE_STORAGE_KEY, next);
+    window.dispatchEvent(new CustomEvent(PROFILE_IMAGE_EVENT, { detail: next }));
+  }
+
+  const avatar = (
     <Avatar className={className}>
       {selectedImage && <Avatar.Image alt={`${nickname} 프로필`} src={selectedImage} />}
     </Avatar>
+  );
+
+  if (!changeable || imageUrl) return avatar;
+
+  return (
+    <div className="relative inline-flex">
+      {avatar}
+      <button
+        type="button"
+        aria-label={changeLabel}
+        title={changeLabel}
+        onClick={nextImage}
+        className="absolute -right-1 -bottom-1 grid size-9 place-items-center rounded-full border-2 border-surface bg-primary text-white shadow-md transition-transform hover:scale-110 active:scale-95"
+      >
+        <Reload className="size-4" aria-hidden="true" />
+      </button>
+    </div>
   );
 }

@@ -35,6 +35,7 @@ export function ProfileSetup({ initialValue = '', isBusy = false, onSubmit }: Pr
               alt={t('appName')}
               width={3966}
               height={1586}
+              priority
               sizes="200px"
               className="h-auto w-full max-w-[200px]"
             />
@@ -66,6 +67,8 @@ export function ProfileSetup({ initialValue = '', isBusy = false, onSubmit }: Pr
                     <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">{t('nicknameWelcomeTitle')}</h1>
                   </header>
                   <ProfileAvatar
+                    changeable
+                    changeLabel={t('changeProfile')}
                     nickname={nickname || '익명'}
                     className="size-28 border-4 border-[var(--palette-border-accent-soft)] bg-surface-tertiary shadow-[0_8px_24px_color-mix(in_srgb,var(--palette-primary-strong)_18%,transparent)] sm:size-32"
                   />

@@ -10,13 +10,17 @@ import {
   joinRoom,
   listPublicRooms,
   promptViolation,
+  stayInRoom,
   setTeam,
+  sourceImageUrl,
   startGame,
   submitAction,
   unsubmitAction,
 } from './lib/store.js';
 import { buildState } from './lib/serialize.js';
-import { getActiveRoomPlayerCounts, HOME, touch } from './lib/realtime.js';
+import { aiEnabled, generateImage, editImage, AiError } from './lib/ai.js';
+import { putImage, getImage, getImageByUrl } from './lib/images.js';
+import { HOME, touch, scheduleLeave } from './lib/realtime.js';
 
 export const apiRouter = Router();
 
@@ -26,7 +30,7 @@ const roomOr404 = (req, res) => {
   return room;
 };
 
-apiRouter.get('/rooms', (_req, res) => res.json({ rooms: listPublicRooms(getActiveRoomPlayerCounts()) }));
+apiRouter.get('/rooms', (_req, res) => res.json({ rooms: listPublicRooms() }));
 
 apiRouter.post('/rooms', (req, res) => {
   const nickname = String(req.body?.nickname ?? '').trim().slice(0, 12);
@@ -36,6 +40,7 @@ apiRouter.post('/rooms', (req, res) => {
     password: req.body?.password,
     lang: req.body?.lang,
   });
+  scheduleLeave(room.code, playerId);
   touch(HOME);
   res.json({ code: room.code, playerId });
 });
@@ -45,6 +50,7 @@ apiRouter.post('/rooms/:code/join', (req, res) => {
   if (!nickname) return res.status(400).json({ error: 'errNickname' });
   const result = joinRoom(req.params.code, nickname, req.body?.password);
   if (result.error) return res.status(400).json({ error: result.error });
+  scheduleLeave(result.room.code, result.playerId);
   touch(result.room.code);
   touch(HOME);
   res.json({ code: result.room.code, playerId: result.playerId });
@@ -98,22 +104,55 @@ apiRouter.post('/rooms/:code/start', (req, res) => {
   res.json({ ok: true });
 });
 
-apiRouter.post('/rooms/:code/generate', (req, res) => {
+apiRouter.post('/rooms/:code/restart', (req, res) => {
+  const room = roomOr404(req, res);
+  if (!room) return;
+  const result = stayInRoom(room, req.body?.playerId);
+  if (result.error) return res.status(400).json({ error: result.error });
+  touch(req.params.code);
+  touch(HOME);
+  res.json({ ok: true });
+});
+
+apiRouter.post('/rooms/:code/generate', async (req, res) => {
   const room = roomOr404(req, res);
   if (!room) return;
   advance(room);
   const prompt = String(req.body?.prompt ?? '').trim().slice(0, 300);
   if (!prompt) return res.status(400).json({ error: 'errEmptyPrompt' });
-  const check = canGenerate(room, req.body?.playerId);
+  const playerId = req.body?.playerId;
+  const check = canGenerate(room, playerId);
   if (check.error) return res.status(400).json({ error: check.error });
   const banned = promptViolation(room, prompt, check.keyword);
   if (banned) return res.status(400).json({ error: 'errBannedWord', word: banned });
-  let hash = 7;
-  for (const char of prompt) hash = (hash * 31 + char.charCodeAt(0)) % 99991;
-  const url = `/api/mock-image?s=${hash}&n=${Math.floor(Math.random() * 1e6)}`;
-  applyDraft(room, req.body?.playerId, prompt, url);
+
+  const source = getImageByUrl(sourceImageUrl(room, playerId));
+  let url;
+  if (aiEnabled()) {
+    try {
+      const png = source ? await editImage(source.buffer, prompt) : await generateImage(prompt);
+      url = putImage(room.code, png);
+    } catch (error) {
+      const code = error instanceof AiError ? error.code : 'errAiFailed';
+      return res.status(502).json({ error: code });
+    }
+  } else {
+    let hash = 7;
+    for (const char of prompt) hash = (hash * 31 + char.charCodeAt(0)) % 99991;
+    url = `/api/mock-image?s=${hash}&n=${Math.floor(Math.random() * 1e6)}`;
+  }
+
+  if (!getRoom(room.code)) return res.status(404).json({ error: 'errRoomNotFound' });
+  applyDraft(room, playerId, prompt, url);
   touch(req.params.code);
   res.json({ url });
+});
+
+apiRouter.get('/image/:id', (req, res) => {
+  const entry = getImage(req.params.id);
+  if (!entry) return res.status(404).json({ error: 'errRoomNotFound' });
+  res.set({ 'Content-Type': entry.contentType, 'Cache-Control': 'public, max-age=86400, immutable' });
+  res.send(entry.buffer);
 });
 
 const submissionActions: Array<[string, (room: any, body: any) => any]> = [

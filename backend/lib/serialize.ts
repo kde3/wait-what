@@ -15,8 +15,8 @@ export function buildState(room, playerId) {
     mode: room.mode,
     options: room.options,
     teamGame: isTeamGame(room),
-    players: room.players.map((p) => ({ nickname: p.nickname, isHost: p.isHost, team: p.team, score: p.score })),
-    you: you ? { nickname: you.nickname, isHost: you.isHost, team: you.team, score: you.score } : null,
+    players: room.players.map((p) => ({ nickname: p.nickname, isHost: p.isHost, team: p.team, score: p.score, staying: !!p.staying, you: p.id === playerId })),
+    you: you ? { nickname: you.nickname, isHost: you.isHost, team: you.team, score: you.score, staying: !!you.staying } : null,
   };
 
   if (room.status === 'playing' && you) state.game = buildGameView(room, you);
@@ -222,6 +222,7 @@ function buildResults(room, you) {
         groups: g.groups.map((group, gi) => ({
           team: isTeamGame(room) ? gi : null,
           score: group.score,
+          comment: group.comment ?? null,
           finalImage: [...group.entries].reverse().find((e) => e.url)?.url ?? null,
           entries: group.entries.map((e) => ({ nickname: e.nickname, prompt: e.prompt, url: e.url, skipped: e.skipped })),
         })),

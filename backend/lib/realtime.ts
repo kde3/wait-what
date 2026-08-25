@@ -2,8 +2,9 @@
 //
 // server.js(CommonJS)는 업그레이드 처리와 소켓 등록만 맡고, 게임 로직을 아는 이 모듈이
 // globalThis에 등록된 소켓을 읽어 실제 전송을 한다. 두 쪽이 같은 프로세스라 방 상태를 그대로 공유한다.
-import { getRoom, advance, listPublicRooms } from './store';
+import { getRoom, advance, listPublicRooms, removePlayer, deleteRoom } from './store';
 import { buildState } from './serialize';
+import { scorePendingGroups, dropPendingScores } from './scoring';
 
 export const HOME = '@HOME';
 
@@ -12,26 +13,43 @@ const TICK_MS = 250;
 const sockets = () => globalThis.__gpSockets ?? (globalThis.__gpSockets = new Map());
 const dirty = () => globalThis.__gpDirty ?? (globalThis.__gpDirty = new Set());
 
-export function getActiveRoomPlayerCounts() {
-  const counts = new Map<string, number>();
+export const RECONNECT_GRACE_MS = 3_000;
 
-  for (const [code, roomSockets] of sockets()) {
-    if (code === HOME) continue;
+const leaveTimers = () => globalThis.__gpLeaveTimers ?? (globalThis.__gpLeaveTimers = new Map());
+
+export function hasLiveSocket(code, playerId) {
+  const set = sockets().get(String(code).toUpperCase());
+  if (!set) return false;
+  for (const socket of set) if (socket.readyState === 1 && socket.gpPlayerId === playerId) return true;
+  return false;
+}
+
+export function cancelLeave(code, playerId) {
+  const key = `${String(code).toUpperCase()}:${playerId}`;
+  const timer = leaveTimers().get(key);
+  if (!timer) return;
+  clearTimeout(timer);
+  leaveTimers().delete(key);
+}
+
+export function scheduleLeave(code, playerId) {
+  if (!playerId) return;
+  const key = `${String(code).toUpperCase()}:${playerId}`;
+  cancelLeave(code, playerId);
+  const timer = setTimeout(() => {
+    leaveTimers().delete(key);
+    if (hasLiveSocket(code, playerId)) return;
     const room = getRoom(code);
-    if (!room) continue;
-    const roomPlayerIds = new Set(room.players.map((player) => player.id));
-    const activePlayerIds = new Set<string>();
-
-    for (const socket of roomSockets) {
-      if (socket.readyState === 1 && socket.gpPlayerId && roomPlayerIds.has(socket.gpPlayerId)) {
-        activePlayerIds.add(socket.gpPlayerId);
-      }
+    if (!room) return;
+    if (!removePlayer(room, playerId)) return;
+    if (!room.players.length) {
+      dropPendingScores(room.code);
+      deleteRoom(room.code);
     }
-
-    if (activePlayerIds.size) counts.set(code, activePlayerIds.size);
-  }
-
-  return counts;
+    touch(room.code);
+    touch(HOME);
+  }, RECONNECT_GRACE_MS);
+  leaveTimers().set(key, timer);
 }
 
 // 상태를 바꾼 쪽에서 호출 — 다음 틱에 해당 채널로 밀어준다.
@@ -53,7 +71,7 @@ export function broadcast(code) {
   if (!set?.size) return;
 
   if (key === HOME) {
-    const payload = JSON.stringify({ type: 'home', rooms: listPublicRooms(getActiveRoomPlayerCounts()) });
+    const payload = JSON.stringify({ type: 'home', rooms: listPublicRooms() });
     for (const ws of set) send(ws, payload);
     return;
   }
@@ -79,7 +97,7 @@ function stateKey(room) {
     room.mode,
     room.name,
     room.isPublic ? 1 : 0,
-    room.players.map((p) => `${p.nickname}:${p.team}:${p.score}`).join(','),
+    room.players.map((p) => `${p.nickname}:${p.team}:${p.score}:${p.staying ? 1 : 0}`).join(','),
     JSON.stringify(room.options),
   ];
   if (g) {
@@ -102,7 +120,7 @@ function stateKey(room) {
       parts.push([...g.subs].map(([k, v]) => `${k}${v.submitted ? 1 : 0}${v.url ? 1 : 0}`).join('|'));
     }
     if (g.groups) {
-      parts.push(g.groups.map((x) => `${x.turn}:${x.done ? 1 : 0}:${x.entries.length}:${x.draftUrl ? 1 : 0}:${x.score}`).join('|'));
+      parts.push(g.groups.map((x) => `${x.turn}:${x.done ? 1 : 0}:${x.entries?.length ?? 0}:${x.draftUrl ? 1 : 0}:${x.score}`).join('|'));
     }
     if (g.teams) {
       parts.push(g.teams.map((t) => `${t.image ? 1 : 0}:${t.draftUrl ? 1 : 0}`).join('|'));
@@ -132,6 +150,7 @@ function tick() {
 
     const before = stateKey(room);
     advance(room);
+    scorePendingGroups(room, touch);
     const changed = stateKey(room) !== before;
     const wasDirty = pending.delete(code);
     if (changed || wasDirty) {

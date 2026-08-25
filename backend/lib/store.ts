@@ -2,6 +2,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { WORDS } from './words';
 import { LANGS } from './langs';
+import { dropRoomImages } from './images';
 
 const rooms = globalThis.__gpRooms ?? (globalThis.__gpRooms = new Map());
 
@@ -13,7 +14,10 @@ const hashPassword = (password) => createHash('sha256').update(String(password))
 
 export const MODES = ['classic', 'speed', 'speed_team', 'relay', 'coop', 'imposter'];
 
+export const DIFFICULTIES = ['normal', 'hard', 'hell'];
+
 export const DEFAULT_OPTIONS = {
+  difficulty: 'normal',
   textSeconds: 45, // 제시어 작성/맞히기 제한시간
   imageSeconds: 90, // 그림(프롬프트+생성) 제한시간
   rounds: 5, // 스피드 퀴즈 라운드 수
@@ -120,13 +124,14 @@ export function getRoom(code) {
 }
 
 export function deleteRoom(code) {
+  dropRoomImages(code);
   return rooms.delete(String(code).toUpperCase());
 }
 
-export function listPublicRooms(activePlayerCounts: Map<string, number>) {
+export function listPublicRooms() {
   pruneRooms();
   return [...rooms.values()]
-    .filter((r) => r.isPublic && (activePlayerCounts.get(r.code) ?? 0) > 0)
+    .filter((r) => r.isPublic && r.players.length > 0)
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 30)
     .map((r) => ({
@@ -134,7 +139,7 @@ export function listPublicRooms(activePlayerCounts: Map<string, number>) {
       name: r.name,
       mode: r.mode,
       status: r.status,
-      players: activePlayerCounts.get(r.code) ?? 0,
+      players: r.players.length,
     }));
 }
 
@@ -149,6 +154,15 @@ export function joinRoom(code, nickname, password = '') {
   const team = isTeamGame(room) ? smallerTeam(room) : null;
   room.players.push({ id: playerId, nickname, isHost: false, team, score: 0 });
   return { room, playerId };
+}
+
+export function removePlayer(room, playerId) {
+  const index = room.players.findIndex((p) => p.id === playerId);
+  if (index < 0) return false;
+  const [removed] = room.players.splice(index, 1);
+  if (removed.isHost && room.players.length) room.players[0].isHost = true;
+  if (room.status === 'finished' && room.players.length && room.players.every((p) => p.staying)) backToLobby(room);
+  return true;
 }
 
 export function isTeamGame(room) {
@@ -186,6 +200,7 @@ export function configRoom(room, playerId, patch: Record<string, any> = {}) {
   if (patch.options && typeof patch.options === 'object') {
     const o = patch.options;
     const opt = room.options;
+    if (o.difficulty !== undefined && DIFFICULTIES.includes(o.difficulty)) opt.difficulty = o.difficulty;
     if (o.textSeconds !== undefined) opt.textSeconds = clampInt(o.textSeconds, 15, 300, opt.textSeconds);
     if (o.imageSeconds !== undefined) opt.imageSeconds = clampInt(o.imageSeconds, 30, 600, opt.imageSeconds);
     if (o.rounds !== undefined) opt.rounds = clampInt(o.rounds, 1, 20, opt.rounds);
@@ -237,12 +252,33 @@ export function startGame(room, playerId) {
     if (c[0] < 1 || c[1] < 1) return { error: 'errTeamEmpty' };
   }
 
-  for (const p of room.players) p.score = 0;
+  for (const p of room.players) {
+    p.score = 0;
+    p.staying = false;
+  }
 
   const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, relay: initRelay, coop: initCoop, imposter: initImposter };
   room.game = init[room.mode](room);
   room.status = 'playing';
   return {};
+}
+
+export function stayInRoom(room, playerId) {
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) return { error: 'errNotPlayer' };
+  if (room.status !== 'finished') return {};
+  player.staying = true;
+  if (room.players.every((p) => p.staying)) backToLobby(room);
+  return {};
+}
+
+export function backToLobby(room) {
+  room.status = 'room';
+  room.game = null;
+  for (const p of room.players) {
+    p.score = 0;
+    p.staying = false;
+  }
 }
 
 export function advance(room) {
@@ -327,8 +363,8 @@ function speedNewRound(room, g) {
   g.used.push(g.keyword.ko);
   // 지정된 사람이 어떤 이유로든 없으면 방장이 대신 그린다.
   g.drawerId = room.options.fixedDrawer
-    ? (room.players[room.options.fixedDrawerIndex] ?? room.players[0]).id
-    : g.order[g.round % g.order.length];
+    ? (room.players[room.options.fixedDrawerIndex] ?? room.players[0])?.id ?? null
+    : nextPresent(room, g.order, g.round);
   g.phase = 'draw'; // draw | guess | reveal
   g.draftUrl = null;
   g.draftPrompt = null;
@@ -400,7 +436,7 @@ function initSpeedTeam(room) {
 function speedTeamNewRound(room, g) {
   g.keyword = pickWord(g.used);
   g.used.push(g.keyword.ko);
-  g.drawers = [0, 1].map((t) => g.teamOrders[t][g.round % g.teamOrders[t].length]);
+  g.drawers = [0, 1].map((t) => nextPresent(room, g.teamOrders[t], g.round));
   g.teams = [0, 1].map(() => ({ draftUrl: null, draftPrompt: null, image: null }));
   g.guesses = [];
   g.winnerTeam = null;
@@ -460,6 +496,18 @@ function initRelay(room) {
   return { theme, groups };
 }
 
+function present(room, id) {
+  return room.players.some((p) => p.id === id);
+}
+
+function nextPresent(room, order, from) {
+  for (let i = 0; i < order.length; i++) {
+    const id = order[(from + i) % order.length];
+    if (present(room, id)) return id;
+  }
+  return null;
+}
+
 function relayLastUrl(group) {
   for (let i = group.entries.length - 1; i >= 0; i--) {
     if (group.entries[i].url) return group.entries[i].url;
@@ -473,7 +521,7 @@ function relayNextTurn(room, group, gi) {
   group.draftPrompt = null;
   if (group.turn >= group.order.length) {
     group.done = true;
-    if (room.options.scored) group.score = mockAiScore(room.code + ':relay:' + gi + ':' + group.entries.length);
+    group.score = null;
   } else {
     group.endsAt = now() + room.options.imageSeconds * 1000;
   }
@@ -483,8 +531,8 @@ function advRelay(room) {
   const g = room.game;
   g.groups.forEach((group, gi) => {
     if (group.done) return;
-    if (now() >= group.endsAt) {
-      const pid = group.order[group.turn];
+    const pid = group.order[group.turn];
+    if (!present(room, pid) || now() >= group.endsAt) {
       const p = room.players.find((x) => x.id === pid);
       group.entries.push({ playerId: pid, nickname: p?.nickname ?? '?', prompt: null, url: relayLastUrl(group), skipped: true });
       relayNextTurn(room, group, gi);
@@ -556,16 +604,20 @@ function imposterNextTurn(room, g) {
   }
 }
 
-function imposterFinish(room, g, guessText) {
+function imposterFinish(room, g, guessText, forcedWon?) {
   g.guess = guessText ?? null;
-  g.won = guessText ? wordMatches(g.keyword, guessText) : false;
+  g.won = forcedWon ?? (guessText ? wordMatches(g.keyword, guessText) : false);
   g.phase = 'done';
   room.status = 'finished';
 }
 
 function advImposter(room) {
   const g = room.game;
-  if (g.phase === 'turns' && now() >= g.endsAt) {
+  if (!room.players.some((p) => p.id === g.imposterId)) return imposterFinish(room, g, null, false);
+  if (!room.players.some((p) => p.id !== g.imposterId && p.id !== g.moderatorId)) {
+    return imposterFinish(room, g, null, true);
+  }
+  if (g.phase === 'turns' && (!present(room, g.order[g.turn]) || now() >= g.endsAt)) {
     const pid = g.order[g.turn];
     const p = room.players.find((x) => x.id === pid);
     g.entries.push({ playerId: pid, nickname: p?.nickname ?? '?', url: null, prompt: null, skipped: true });
@@ -618,6 +670,32 @@ export function canGenerate(room, playerId) {
     }
     default:
       return { error: 'errBadMode' };
+  }
+}
+
+export function sourceImageUrl(room, playerId) {
+  const g = room.game;
+  if (!g) return null;
+  const player = room.players.find((p) => p.id === playerId);
+  switch (room.mode) {
+    case 'classic':
+      return g.submissions.get(playerId)?.url ?? null;
+    case 'speed':
+      return g.draftUrl ?? null;
+    case 'speed_team':
+      return player ? g.teams[player.team]?.draftUrl ?? null : null;
+    case 'relay': {
+      const gi = isTeamGame(room) ? player?.team ?? 0 : 0;
+      const group = g.groups[gi];
+      if (!group) return null;
+      return group.draftUrl ?? relayLastUrl(group);
+    }
+    case 'coop':
+      return g.subs.get(playerId)?.url ?? null;
+    case 'imposter':
+      return g.draftUrl ?? null;
+    default:
+      return null;
   }
 }
 

@@ -91,23 +91,34 @@ function useChannel(channel, playerId, { onMessage, poll, pollMs, enabled }) {
 }
 
 // 방 상태 구독 — 최초 1회는 HTTP로 받아 첫 화면을 빨리 그린다.
+const MAX_POLL_FAILURES = 8;
+
 export function useRoomState(code, playerId, enabled) {
   const [state, setState] = useState(null);
   const [gone, setGone] = useState(false);
+  const [disconnected, setDisconnected] = useState(false);
+  const failuresRef = useRef(0);
 
   const fetchState = useCallback(async () => {
     if (!code) return;
     try {
       const res = await fetch(apiUrl(`/api/rooms/${code}/state?playerId=${encodeURIComponent(playerId ?? '')}`));
+      failuresRef.current = 0;
+      setDisconnected(false);
       if (!res.ok) {
         if (res.status === 404) setGone(true);
         return;
       }
       setState(await res.json());
-    } catch {}
+    } catch {
+      failuresRef.current += 1;
+      if (failuresRef.current >= MAX_POLL_FAILURES) setDisconnected(true);
+    }
   }, [code, playerId]);
 
   const onMessage = useCallback((msg) => {
+    failuresRef.current = 0;
+    setDisconnected(false);
     if (msg.type === 'state') setState(msg.state);
     else if (msg.type === 'gone') setGone(true);
   }, []);
@@ -118,7 +129,7 @@ export function useRoomState(code, playerId, enabled) {
 
   const live = useChannel(code, playerId, { onMessage, poll: fetchState, pollMs: 1500, enabled: !!enabled });
 
-  return { state, live, gone, refresh: fetchState };
+  return { state, live, gone, disconnected, refresh: fetchState };
 }
 
 // 홈 공개방 목록 구독

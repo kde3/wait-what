@@ -5,14 +5,14 @@ import { Button } from '../ui/button';
 import { Crown } from 'pixelarticons/react';
 import { useI18n } from '../i18n-provider';
 
-function PlayerItem({ player, currentNickname }: any) {
+function PlayerItem({ player }: any) {
   const { t } = useI18n();
   return (
     <li className="flex min-w-0 items-center gap-2 rounded-lg border bg-surface px-3 py-2 text-sm">
       {player.isHost && <Crown className="size-4 shrink-0 text-warning" aria-label={t('host')} />}
       <span className="min-w-0 break-words">
         {player.nickname}
-        {player.nickname === currentNickname && ` (${t('you')})`}
+        {player.you && ` (${t('you')})`}
       </span>
     </li>
   );
@@ -38,7 +38,7 @@ export function ParticipantList({ state, busy = false, onJoinTeam }: any) {
                 </div>
                 <ul className="flex flex-col gap-2">
                   {state.players.filter((player) => player.team === team).map((player, index) => (
-                    <PlayerItem key={index} player={player} currentNickname={state.you?.nickname} />
+                    <PlayerItem key={index} player={player} />
                   ))}
                 </ul>
               </div>
@@ -47,7 +47,7 @@ export function ParticipantList({ state, busy = false, onJoinTeam }: any) {
         ) : (
           <ul className="flex flex-col gap-2">
             {state.players.map((player, index) => (
-              <PlayerItem key={index} player={player} currentNickname={state.you?.nickname} />
+              <PlayerItem key={index} player={player} />
             ))}
           </ul>
         )}

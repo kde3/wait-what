@@ -6,26 +6,42 @@ import { useI18n } from '../i18n-provider';
 import { Input } from '@heroui/react';
 import { Button } from '../ui/button';
 import { ImagePromptInput } from './image-prompt-input';
+import { apiUrl } from '../../lib/backend-url';
 
 // 생성 이미지 미리보기 + 프롬프트 입력 + 제출 버튼
-export function PromptPanel({ prompt, setPrompt, imageUrl, generating, busy, onGenerate, onCancelGenerate, onSubmit, submitLabel }: any) {
+export function PromptPanel({ prompt, setPrompt, imageUrl, generating, busy, locked, onGenerate, onCancelGenerate, onSubmit, submitLabel }: any) {
   const { t } = useI18n();
   return (
     <div className="space-y-3">
-      {imageUrl && <img className="w-full rounded-lg border object-cover" src={imageUrl} alt="AI" />}
+      {imageUrl && <img className="w-full rounded-lg border object-cover" src={apiUrl(imageUrl)} alt="AI" />}
       <ImagePromptInput
         value={prompt}
         isPending={generating}
-        disabled={busy && !generating}
+        disabled={locked || (busy && !generating)}
         onChange={setPrompt}
         onSubmit={onGenerate}
         onCancel={onCancelGenerate}
       />
-      {onSubmit && imageUrl && (
+      {onSubmit && imageUrl && !locked && (
         <Button className="w-full" onClick={onSubmit} isDisabled={busy || generating}>
           {submitLabel ?? t('submitImage')}
         </Button>
       )}
+    </div>
+  );
+}
+
+export function SubmittedNotice({ onCancel, busy }: any) {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 rounded-lg border bg-surface-secondary px-3 py-2 text-sm text-muted">
+      <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-muted border-t-primary" aria-hidden="true" />
+      <span>
+        <b className="text-foreground">{t('submitted')}</b> {t('waitingOthers')}
+      </span>
+      <Button variant="outline" className="h-7 w-auto px-2 text-xs" onClick={onCancel} isDisabled={busy}>
+        {t('cancelSubmit')}
+      </Button>
     </div>
   );
 }

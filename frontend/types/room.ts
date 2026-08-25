@@ -6,9 +6,14 @@ export interface Player {
   isHost: boolean;
   team: number | null;
   score: number;
+  staying?: boolean;
+  you?: boolean;
 }
 
+export type Difficulty = 'normal' | 'hard' | 'hell';
+
 export interface RoomOptions {
+  difficulty: Difficulty;
   textSeconds: number;
   imageSeconds: number;
   rounds: number;

@@ -21,6 +21,23 @@ function OptionSelect({ value, values, disabled, suffix = '', onChange }: any) {
   );
 }
 
+function DifficultySelect({ value, disabled, onChange }: any) {
+  const { t } = useI18n();
+  const items = [
+    { id: 'normal', label: t('difficultyNormal') },
+    { id: 'hard', label: t('difficultyHard') },
+    { id: 'hell', label: t('difficultyHell') },
+  ];
+  return (
+    <Select value={value} isDisabled={disabled} onChange={(next) => onChange(String(next))} className="w-28" aria-label={t('optDifficulty')}>
+      <Select.Trigger><Select.Value /></Select.Trigger>
+      <Select.Popover><ListBox>
+        {items.map((item) => <ListBox.Item key={item.id} id={item.id} textValue={item.label}>{item.label}</ListBox.Item>)}
+      </ListBox></Select.Popover>
+    </Select>
+  );
+}
+
 // HeroUI Switch는 합성 컴포넌트라 자식을 주지 않으면 빈 span만 남아 화면에 아무것도 안 보인다.
 function OptionSwitch({ isSelected, isDisabled, label, onChange }: any) {
   return (
@@ -145,6 +162,10 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
         <Card className="p-5">
         <h2>{t('optionsTitle')}</h2>
         <div className="grid gap-2 sm:grid-cols-2">
+          <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+            <span>{t('optDifficulty')}</span>
+            <DifficultySelect value={o.difficulty ?? 'normal'} disabled={!isHost} onChange={(value: string) => setOption('difficulty', value)} />
+          </label>
           <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
             <span>{t('optTextSeconds')}</span>
             <OptionSelect value={o.textSeconds} values={[20, 30, 45, 60, 90, 120]} suffix={t('secondsUnit')} disabled={!isHost} onChange={(value: number) => setOption('textSeconds', value)} />

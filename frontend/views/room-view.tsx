@@ -32,6 +32,7 @@ interface RoomViewProps {
   error?: string;
   live?: boolean;
   onBack?: () => void;
+  onLeave?: () => void;
   onStarted?: () => void;
 }
 
@@ -43,6 +44,7 @@ export function RoomView({
   error = '',
   live = true,
   onBack,
+  onLeave,
   onStarted,
 }: RoomViewProps) {
   const { t } = useI18n();
@@ -52,14 +54,19 @@ export function RoomView({
     <>
       <Header onBack={onBack} />
       <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6">
-        {!live && <div className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-center text-sm text-danger">{t('reconnecting')}</div>}
+        {!live && (
+          <div className="flex items-center justify-center gap-2 rounded-lg border bg-surface-secondary px-3 py-2 text-sm text-muted">
+            <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-muted border-t-primary" aria-hidden="true" />
+            {t('reconnecting')}
+          </div>
+        )}
         {state.status === 'room' && (
           <Room state={state} playerId={playerId} api={api} busy={busy} error={error} onStarted={onStarted} />
         )}
         {state.status === 'playing' && state.game && Play && (
           <Play state={state} playerId={playerId} api={api} busy={busy} error={error} />
         )}
-        {state.status === 'finished' && <GameResults state={state} />}
+        {state.status === 'finished' && <GameResults state={state} playerId={playerId} api={api} busy={busy} onLeave={onLeave} />}
       </main>
     </>
   );
