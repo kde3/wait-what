@@ -53,14 +53,6 @@ export async function generateImage(prompt: string) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-export async function editImage(source: Buffer, prompt: string) {
-  const form = new FormData();
-  form.set('image', new Blob([new Uint8Array(source)], { type: 'image/png' }), 'source.png');
-  form.set('prompt', prompt);
-  const response = await call('/edit', { method: 'POST', headers: accessHeaders(), body: form });
-  return Buffer.from(await response.arrayBuffer());
-}
-
 export async function evaluateImage(image: Buffer, prompt: string) {
   const form = new FormData();
   form.set('image', new Blob([new Uint8Array(image)], { type: 'image/png' }), 'doodle.png');

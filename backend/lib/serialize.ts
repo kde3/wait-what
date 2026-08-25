@@ -1,5 +1,5 @@
 // 방 상태 직렬화 — HTTP 폴링 라우트와 웹소켓 브로드캐스트가 함께 쓴다.
-import { isTeamGame, classicRoundType, classicChainIndex } from './store';
+import { isTeamGame, classicRoundType, classicChainIndex, nicknameOf, MAX_PLAYERS } from './store';
 
 const remainSec = (endsAt) => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 
@@ -15,6 +15,7 @@ export function buildState(room, playerId) {
     mode: room.mode,
     options: room.options,
     teamGame: isTeamGame(room),
+    maxPlayers: MAX_PLAYERS,
     players: room.players.map((p) => ({ nickname: p.nickname, isHost: p.isHost, team: p.team, score: p.score, staying: !!p.staying, you: p.id === playerId })),
     you: you ? { nickname: you.nickname, isHost: you.isHost, team: you.team, score: you.score, staying: !!you.staying } : null,
   };
@@ -51,7 +52,6 @@ function buildGameView(room, you) {
 
     case 'speed': {
       const isDrawer = g.drawerId === you.id;
-      const drawer = room.players.find((p) => p.id === g.drawerId);
       const reveal = g.phase === 'reveal';
       return {
         kind: 'speed',
@@ -60,7 +60,7 @@ function buildGameView(room, you) {
         phase: g.phase,
         remaining: remainSec(g.endsAt),
         teamMode: room.options.teamMode,
-        drawer: drawer?.nickname ?? '?',
+        drawer: nicknameOf(room, g.drawerId),
         youAreDrawer: isDrawer,
         keyword: isDrawer || reveal ? g.keyword : null,
         image: g.phase === 'guess' ? g.image : reveal ? g.image ?? g.draftUrl : null,
@@ -89,7 +89,7 @@ function buildGameView(room, you) {
         youAreDrawer,
         keyword: youAreDrawer || reveal ? g.keyword : null,
         teams: [0, 1].map((ti) => ({
-          drawer: room.players.find((p) => p.id === g.drawers[ti])?.nickname ?? '?',
+          drawer: nicknameOf(room, g.drawers[ti]),
           imageReady: !!g.teams[ti].image,
           // 자기 팀 그림만 보이고, 상대 팀 그림은 결과 공개 때만
           image: ti === t || reveal ? g.teams[ti].image : null,
@@ -105,37 +105,6 @@ function buildGameView(room, you) {
       };
     }
 
-    case 'relay': {
-      const yourGroup = isTeamGame(room) ? you.team : 0;
-      return {
-        kind: 'relay',
-        theme: g.theme,
-        teamMode: isTeamGame(room),
-        yourGroup,
-        groups: g.groups.map((group, gi) => {
-          const curId = group.done ? null : group.order[group.turn];
-          const youAreCurrent = curId === you.id;
-          return {
-            team: isTeamGame(room) ? gi : null,
-            done: group.done,
-            turn: group.turn + 1,
-            totalTurns: group.order.length,
-            turnNickname: curId ? room.players.find((p) => p.id === curId)?.nickname ?? '?' : null,
-            remaining: group.done ? 0 : remainSec(group.endsAt),
-            currentImage: [...group.entries].reverse().find((e) => e.url)?.url ?? null,
-            // 진행 중에는 남의 프롬프트를 감춘다 (결과 화면에서 공개)
-            entries: group.entries.map((e) => ({
-              nickname: e.nickname,
-              prompt: e.playerId === you.id ? e.prompt : null,
-              url: e.url,
-              skipped: e.skipped,
-            })),
-            youAreCurrent,
-            draft: youAreCurrent ? { prompt: group.draftPrompt, url: group.draftUrl } : null,
-          };
-        }),
-      };
-    }
 
     case 'coop': {
       const sub = g.subs.get(you.id) ?? null;
@@ -154,7 +123,7 @@ function buildGameView(room, you) {
           cells: group.members.map((id) => {
             const p = room.players.find((x) => x.id === id);
             const s = g.subs.get(id);
-            return { nickname: p?.nickname ?? '?', submitted: !!s?.submitted, url: s?.submitted ? s.url : null, you: id === you.id };
+            return { nickname: nicknameOf(room, id), submitted: !!s?.submitted, url: s?.submitted ? s.url : null, you: id === you.id };
           }),
         })),
       };
@@ -162,20 +131,17 @@ function buildGameView(room, you) {
 
     case 'imposter': {
       const youAreImposter = g.imposterId === you.id;
-      const youAreModerator = g.moderatorId === you.id;
       const curId = g.phase === 'turns' ? g.order[g.turn] : null;
       return {
         kind: 'imposter',
         phase: g.phase,
         remaining: remainSec(g.endsAt),
-        imposter: room.players.find((p) => p.id === g.imposterId)?.nickname ?? '?',
+        imposter: nicknameOf(room, g.imposterId),
         youAreImposter,
-        youAreModerator,
-        moderator: g.moderatorId ? room.players.find((p) => p.id === g.moderatorId)?.nickname ?? null : null,
         keyword: youAreImposter ? null : g.keyword,
-        order: g.order.map((id) => room.players.find((p) => p.id === id)?.nickname ?? '?'),
+        order: g.order.map((id) => nicknameOf(room, id)),
         turnIndex: g.turn,
-        turnNickname: curId ? room.players.find((p) => p.id === curId)?.nickname ?? '?' : null,
+        turnNickname: curId ? nicknameOf(room, curId) : null,
         youAreCurrent: curId === you.id,
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, skipped: e.skipped })),
         draft: curId === you.id ? { prompt: g.draftPrompt, url: g.draftUrl } : null,
@@ -193,7 +159,7 @@ function buildResults(room, you) {
       return {
         kind: 'classic',
         albums: g.chains.map((chain, j) => ({
-          owner: room.players.find((p) => p.id === g.order[j])?.nickname ?? '?',
+          owner: nicknameOf(room, g.order[j]),
           entries: chain.map((e) => ({ type: e.type, text: e.text, prompt: e.prompt, url: e.url, author: e.authorNickname })),
         })),
       };
@@ -213,20 +179,6 @@ function buildResults(room, you) {
         teamScores: g.teamScores,
         history: g.history,
       };
-    case 'relay':
-      return {
-        kind: 'relay',
-        theme: g.theme,
-        scored: room.options.scored,
-        teamMode: isTeamGame(room),
-        groups: g.groups.map((group, gi) => ({
-          team: isTeamGame(room) ? gi : null,
-          score: group.score,
-          comment: group.comment ?? null,
-          finalImage: [...group.entries].reverse().find((e) => e.url)?.url ?? null,
-          entries: group.entries.map((e) => ({ nickname: e.nickname, prompt: e.prompt, url: e.url, skipped: e.skipped })),
-        })),
-      };
     case 'coop':
       return {
         kind: 'coop',
@@ -240,7 +192,7 @@ function buildResults(room, you) {
           cells: group.members.map((id) => {
             const p = room.players.find((x) => x.id === id);
             const s = g.subs.get(id);
-            return { nickname: p?.nickname ?? '?', url: s?.url ?? null, prompt: s?.prompt ?? null };
+            return { nickname: nicknameOf(room, id), url: s?.url ?? null, prompt: s?.prompt ?? null };
           }),
         })),
       };
@@ -248,7 +200,7 @@ function buildResults(room, you) {
       return {
         kind: 'imposter',
         keyword: g.keyword,
-        imposter: room.players.find((p) => p.id === g.imposterId)?.nickname ?? '?',
+        imposter: nicknameOf(room, g.imposterId),
         guess: g.guess,
         won: g.won,
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, prompt: e.prompt, skipped: e.skipped })),

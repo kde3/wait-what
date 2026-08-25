@@ -4,6 +4,11 @@ let mutedCache = null;
 let bgmAudio: HTMLAudioElement | null = null;
 let desiredBgm: 'home' | 'play' | null = null;
 let bgmResumeArmed = false;
+let lifecycleBound = false;
+let volumeCache = null;
+
+const BGM_BASE_VOLUME = 0.3;
+const DEFAULT_VOLUME = 0.6;
 
 const BGM_SOURCES = {
   home: '/sounds/bgm/home.mp3',
@@ -23,12 +28,52 @@ function armBgmResume() {
   window.addEventListener('keydown', resume, { once: true });
 }
 
+function bindLifecycle() {
+  if (lifecycleBound || typeof document === 'undefined') return;
+  lifecycleBound = true;
+
+  const suspend = () => {
+    bgmAudio?.pause();
+    if (ctx && ctx.state === 'running') void ctx.suspend();
+  };
+
+  const restore = () => {
+    if (document.visibilityState !== 'visible') return;
+    if (desiredBgm && !isMuted()) playBgm(desiredBgm);
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) suspend();
+    else restore();
+  });
+  window.addEventListener('pagehide', suspend);
+  window.addEventListener('pageshow', restore);
+  window.addEventListener('freeze', suspend);
+}
+
 export function isMuted() {
   if (mutedCache === null) {
     if (typeof window !== 'undefined') window.localStorage.removeItem('gp_muted');
     mutedCache = typeof window !== 'undefined' && window.sessionStorage.getItem('gp_muted') === '1';
   }
   return mutedCache;
+}
+
+export function getVolume() {
+  if (volumeCache === null) {
+    const raw = typeof window !== 'undefined' ? window.sessionStorage.getItem('gp_volume') : null;
+    const parsed = raw === null ? NaN : Number(raw);
+    volumeCache = Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : DEFAULT_VOLUME;
+  }
+  return volumeCache;
+}
+
+export function setVolume(v) {
+  volumeCache = Math.min(1, Math.max(0, Number(v) || 0));
+  try {
+    window.sessionStorage.setItem('gp_volume', String(volumeCache));
+  } catch {}
+  if (bgmAudio) bgmAudio.volume = BGM_BASE_VOLUME * volumeCache;
 }
 
 export function setMuted(m) {
@@ -45,6 +90,7 @@ export function setMuted(m) {
 
 function ac() {
   if (typeof window === 'undefined') return null;
+  bindLifecycle();
   try {
     ctx ??= new (window.AudioContext || window.webkitAudioContext)();
     if (ctx.state === 'suspended') ctx.resume();
@@ -56,6 +102,8 @@ function ac() {
 
 function tone(freq, dur = 0.12, type = 'sine', gain = 0.12, delay = 0) {
   if (isMuted()) return;
+  const level = gain * getVolume();
+  if (level <= 0) return;
   const c = ac();
   if (!c) return;
   try {
@@ -65,7 +113,7 @@ function tone(freq, dur = 0.12, type = 'sine', gain = 0.12, delay = 0) {
     osc.type = type;
     osc.frequency.value = freq;
     g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(gain, t0 + 0.015);
+    g.gain.linearRampToValueAtTime(level, t0 + 0.015);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     osc.connect(g).connect(c.destination);
     osc.start(t0);
@@ -93,6 +141,8 @@ export const sfx = {
 export function playBgm(track: 'home' | 'play') {
   desiredBgm = track;
   if (typeof window === 'undefined' || isMuted()) return;
+  bindLifecycle();
+  if (document.visibilityState === 'hidden') return;
 
   const source = BGM_SOURCES[track];
   bgmAudio ??= new Audio();
@@ -101,7 +151,7 @@ export function playBgm(track: 'home' | 'play') {
     bgmAudio.currentTime = 0;
   }
   bgmAudio.loop = true;
-  bgmAudio.volume = 0.3;
+  bgmAudio.volume = BGM_BASE_VOLUME * getVolume();
   void bgmAudio.play().catch(armBgmResume);
 }
 

@@ -3,14 +3,11 @@
 import Header from '../components/layout/header';
 import Room from '../components/room/room';
 import GameResults from '../components/game/game-results';
-import {
-  ClassicPlay,
-  SpeedPlay,
-  SpeedTeamPlay,
-  RelayPlay,
-  CoopPlay,
-  ImposterPlay,
-} from '../components/game/game-play';
+import ClassicPlay from '../components/game/modes/classic-play';
+import SpeedPlay from '../components/game/modes/speed-play';
+import SpeedTeamPlay from '../components/game/modes/speed-team-play';
+import CoopPlay from '../components/game/modes/coop-play';
+import ImposterPlay from '../components/game/modes/imposter-play';
 import { useI18n } from '../components/i18n-provider';
 import type { RoomApi } from '../types/api';
 import type { RoomState } from '../types/room';
@@ -19,7 +16,6 @@ const PLAY_COMPONENTS = {
   classic: ClassicPlay,
   speed: SpeedPlay,
   speed_team: SpeedTeamPlay,
-  relay: RelayPlay,
   coop: CoopPlay,
   imposter: ImposterPlay,
 };

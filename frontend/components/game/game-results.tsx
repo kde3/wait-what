@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { aiComment } from '../../lib/i18n';
 import { wordText } from '../../lib/words';
-import { TeamBadge } from './game-bits';
+import { TeamBadge } from './team-badge';
 import { sfx } from '../../lib/sound';
 import { Button } from '../ui/button';
 import { apiUrl } from '../../lib/backend-url';
@@ -35,13 +35,6 @@ function buildShareText(state, results, t, lang) {
       lines.push(`${t('teamA')} ${results.teamScores[0]} : ${results.teamScores[1]} ${t('teamB')}`);
       results.history.forEach((h) => {
         lines.push(`🔑 ${wordText(h.keyword, lang)} → ${h.winner ?? t('noWinner')}`);
-      });
-      break;
-    case 'relay':
-      lines.push(`🎯 ${t('relayThemeLabel')}: ${wordText(results.theme, lang)}`);
-      results.groups.forEach((g) => {
-        if (g.score != null) lines.push(`⭐ ${t('aiScore')}: ${g.score}`);
-        g.entries.forEach((e) => e.prompt && lines.push(`  🖌️ ${e.nickname}: ${e.prompt}`));
       });
       break;
     case 'coop':
@@ -220,49 +213,6 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
         </>
       )}
 
-      {r.kind === 'relay' && (
-        <>
-          <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2>
-              <Target className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayThemeLabel')}: {wordText(r.theme, lang)}
-            </h2>
-          </div>
-          {r.groups.map((g, gi) => (
-            <div key={gi} className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-              {r.teamMode && (
-                <h2>
-                  <TeamBadge team={gi} />
-                </h2>
-              )}
-              {g.score != null && (
-                <div className="mb-3 rounded-lg bg-surface-secondary p-3 text-center font-medium">
-                  <Star className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('aiScore')}: <b>{g.score}</b> — {g.comment ?? aiComment(lang, g.score)}
-                </div>
-              )}
-              {g.finalImage && (
-                <>
-                  <p className="text-sm text-muted">{t('finalImage')}</p>
-                  <img className="w-full rounded-lg border object-cover" src={apiUrl(g.finalImage)} alt="AI" />
-                </>
-              )}
-              <p className="text-sm text-muted">{t('relayHistory')}</p>
-              {g.entries.map((e, i) => (
-                <div key={i} className="space-y-2 border-b py-4 last:border-0">
-                  <div className="text-sm font-medium">
-                    <Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {e.nickname} {e.skipped && <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-0.5 text-xs text-foreground">{t('skipped')}</span>}
-                  </div>
-                  {e.prompt && (
-                    <p className="text-sm text-muted">
-                      {t('promptLabel')}: {e.prompt}
-                    </p>
-                  )}
-                  {e.url && <img className="w-full max-w-xs rounded-lg border object-cover" src={apiUrl(e.url)} alt="AI" />}
-                </div>
-              ))}
-            </div>
-          ))}
-        </>
-      )}
 
       {r.kind === 'coop' && (
         <>

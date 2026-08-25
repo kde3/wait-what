@@ -1,4 +1,4 @@
-export type GameMode = 'classic' | 'speed' | 'speed_team' | 'relay' | 'coop' | 'imposter';
+export type GameMode = 'classic' | 'speed' | 'speed_team' | 'coop' | 'imposter';
 export type RoomStatus = 'room' | 'playing' | 'finished';
 
 export interface Player {
@@ -22,7 +22,6 @@ export interface RoomOptions {
   /** 고정 출제자가 누구인지 — players 배열의 인덱스 */
   fixedDrawerIndex: number;
   scored: boolean;
-  moderator: boolean;
 }
 
 export interface RoomState {
@@ -33,6 +32,7 @@ export interface RoomState {
   mode: GameMode;
   teamGame: boolean;
   options: RoomOptions;
+  maxPlayers: number;
   players: Player[];
   you: Player | null;
   game?: Record<string, any>;

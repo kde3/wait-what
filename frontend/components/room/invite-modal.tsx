@@ -21,7 +21,7 @@ export function InviteModal({ code, url, isOpen, copied, onOpenChange, onCopy }:
               </div>
               <QrInvite url={url} size={240} />
               <div className="flex w-full gap-3">
-                <Input aria-label={t('copyLink')} value={url} readOnly tabIndex={-1} className="pointer-events-none min-w-0 flex-1 text-sm" />
+                <Input aria-label={t('copyLink')} value={url} readOnly tabIndex={-1} autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} className="pointer-events-none min-w-0 flex-1 text-sm" />
                 <Button className="shrink-0" variant="secondary" onClick={onCopy} aria-label={copied ? t('copied') : t('copyLink')}>
                   <Copy className="size-4" aria-hidden="true" />
                   {copied ? t('copied') : t('copyLink')}

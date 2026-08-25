@@ -12,14 +12,13 @@ import {
   promptViolation,
   stayInRoom,
   setTeam,
-  sourceImageUrl,
   startGame,
   submitAction,
   unsubmitAction,
 } from './lib/store.js';
 import { buildState } from './lib/serialize.js';
-import { aiEnabled, generateImage, editImage, AiError } from './lib/ai.js';
-import { putImage, getImage, getImageByUrl } from './lib/images.js';
+import { aiEnabled, generateImage, AiError } from './lib/ai.js';
+import { putImage, getImage } from './lib/images.js';
 import { HOME, touch, scheduleLeave } from './lib/realtime.js';
 
 export const apiRouter = Router();
@@ -126,11 +125,10 @@ apiRouter.post('/rooms/:code/generate', async (req, res) => {
   const banned = promptViolation(room, prompt, check.keyword);
   if (banned) return res.status(400).json({ error: 'errBannedWord', word: banned });
 
-  const source = getImageByUrl(sourceImageUrl(room, playerId));
   let url;
   if (aiEnabled()) {
     try {
-      const png = source ? await editImage(source.buffer, prompt) : await generateImage(prompt);
+      const png = await generateImage(prompt);
       url = putImage(room.code, png);
     } catch (error) {
       const code = error instanceof AiError ? error.code : 'errAiFailed';

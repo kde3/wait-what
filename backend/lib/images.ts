@@ -25,11 +25,6 @@ export function getImage(id) {
   return store().get(String(id)) ?? null;
 }
 
-export function getImageByUrl(url) {
-  const match = /^\/api\/image\/([0-9a-f]+)$/.exec(String(url ?? ''));
-  return match ? getImage(match[1]) : null;
-}
-
 export function dropRoomImages(code) {
   const key = String(code).toUpperCase();
   for (const [id, entry] of store()) {

@@ -12,7 +12,9 @@ const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
 const DEFAULT_CLASSIC_PHRASE = '우주복을 입은 고양이가 라면을 먹는 모습';
 const hashPassword = (password) => createHash('sha256').update(String(password)).digest('hex');
 
-export const MODES = ['classic', 'speed', 'speed_team', 'relay', 'coop', 'imposter'];
+export const MODES = ['classic', 'speed', 'speed_team', 'coop', 'imposter'];
+
+export const MAX_PLAYERS = 12;
 
 export const DIFFICULTIES = ['normal', 'hard', 'hell'];
 
@@ -21,11 +23,10 @@ export const DEFAULT_OPTIONS = {
   textSeconds: 45, // 제시어 작성/맞히기 제한시간
   imageSeconds: 90, // 그림(프롬프트+생성) 제한시간
   rounds: 5, // 스피드 퀴즈 라운드 수
-  teamMode: false, // 개인전/팀전 (speed, relay, coop)
+  teamMode: false, // 개인전/팀전 (speed, coop)
   fixedDrawer: false, // 스피드 퀴즈: 돌아가며 그리지 않고 한 명이 계속 그림
   fixedDrawerIndex: 0, // 그 한 명이 누구인지 — room.players 인덱스, 0은 방장
-  scored: true, // relay/coop: AI 평가 여부
-  moderator: false, // imposter: 사회자(방장 관전) 여부
+  scored: true, // coop: AI 평가 여부
 };
 
 function randomCode(len = 4) {
@@ -105,6 +106,7 @@ export function createRoom(nickname, { name, password, lang }: Record<string, an
     mode: 'classic',
     options: { ...DEFAULT_OPTIONS },
     players: [{ id: hostId, nickname, isHost: true, team: null, score: 0 }],
+    names: new Map([[hostId, nickname]]),
     game: null,
     createdAt: Date.now(),
   };
@@ -140,6 +142,7 @@ export function listPublicRooms() {
       mode: r.mode,
       status: r.status,
       players: r.players.length,
+      maxPlayers: MAX_PLAYERS,
     }));
 }
 
@@ -148,12 +151,18 @@ export function joinRoom(code, nickname, password = '') {
   if (!room) return { error: 'errRoomNotFound' };
   if (room.passwordHash && room.passwordHash !== hashPassword(password ?? '')) return { error: 'errWrongPassword' };
   if (room.status !== 'room') return { error: 'errAlreadyStarted' };
-  if (room.players.length >= 10) return { error: 'errRoomFull' };
+  if (room.players.length >= MAX_PLAYERS) return { error: 'errRoomFull' };
 
   const playerId = randomId();
   const team = isTeamGame(room) ? smallerTeam(room) : null;
   room.players.push({ id: playerId, nickname, isHost: false, team, score: 0 });
+  room.names.set(playerId, nickname);
   return { room, playerId };
+}
+
+export function nicknameOf(room, id) {
+  if (!id) return '?';
+  return room.players.find((p) => p.id === id)?.nickname ?? room.names?.get(id) ?? '?';
 }
 
 export function removePlayer(room, playerId) {
@@ -168,7 +177,7 @@ export function removePlayer(room, playerId) {
 export function isTeamGame(room) {
   return (
     room.mode === 'speed_team' ||
-    (['speed', 'relay', 'coop'].includes(room.mode) && room.options.teamMode)
+    (['speed', 'coop'].includes(room.mode) && room.options.teamMode)
   );
 }
 
@@ -210,7 +219,6 @@ export function configRoom(room, playerId, patch: Record<string, any> = {}) {
       opt.fixedDrawerIndex = clampInt(o.fixedDrawerIndex, 0, room.players.length - 1, opt.fixedDrawerIndex);
     }
     if (o.scored !== undefined) opt.scored = !!o.scored;
-    if (o.moderator !== undefined) opt.moderator = !!o.moderator;
   }
 
   if (isTeamGame(room)) ensureTeams(room);
@@ -241,9 +249,8 @@ export function startGame(room, playerId) {
   if (room.status !== 'room') return { error: 'errAlreadyStarted' };
 
   const n = room.players.length;
-  const min = { classic: 1, speed: 2, speed_team: 2, relay: 1, coop: 1, imposter: 3 }[room.mode];
-  const minTotal = room.mode === 'imposter' && room.options.moderator ? 4 : min;
-  if (n < minTotal) return { error: 'errNotEnoughPlayers' };
+  const min = { classic: 1, speed: 2, speed_team: 2, coop: 1, imposter: 3 }[room.mode];
+  if (n < min) return { error: 'errNotEnoughPlayers' };
 
   if (isTeamGame(room)) {
     ensureTeams(room);
@@ -257,7 +264,7 @@ export function startGame(room, playerId) {
     p.staying = false;
   }
 
-  const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, relay: initRelay, coop: initCoop, imposter: initImposter };
+  const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, coop: initCoop, imposter: initImposter };
   room.game = init[room.mode](room);
   room.status = 'playing';
   return {};
@@ -283,7 +290,7 @@ export function backToLobby(room) {
 
 export function advance(room) {
   if (room.status !== 'playing') return;
-  const adv = { classic: advClassic, speed: advSpeed, speed_team: advSpeedTeam, relay: advRelay, coop: advCoop, imposter: advImposter };
+  const adv = { classic: advClassic, speed: advSpeed, speed_team: advSpeedTeam, coop: advCoop, imposter: advImposter };
   adv[room.mode](room);
 }
 
@@ -388,7 +395,7 @@ function speedFinishRound(room, g, winnerId) {
   }
   g.history.push({
     keyword: g.keyword,
-    drawer: drawer?.nickname ?? '?',
+    drawer: nicknameOf(room, g.drawerId),
     winner: winner?.nickname ?? null,
     winnerTeam: winner?.team ?? null,
     url: g.image,
@@ -453,7 +460,7 @@ function speedTeamFinishRound(room, g, winnerId) {
   g.history.push({
     keyword: g.keyword,
     urls: [g.teams[0].image ?? g.teams[0].draftUrl, g.teams[1].image ?? g.teams[1].draftUrl],
-    drawers: g.drawers.map((id) => room.players.find((p) => p.id === id)?.nickname ?? '?'),
+    drawers: g.drawers.map((id) => nicknameOf(room, id)),
     winner: winner?.nickname ?? null,
     winnerTeam: g.winnerTeam,
   });
@@ -472,30 +479,6 @@ function advSpeedTeam(room) {
   }
 }
 
-// ── 릴레이 그림 수정: 한 그림을 차례로 계속 수정 ─────────────
-
-function relayGroups(room) {
-  if (isTeamGame(room)) {
-    return [0, 1].map((t) => room.players.filter((p) => p.team === t).map((p) => p.id));
-  }
-  return [room.players.map((p) => p.id)];
-}
-
-function initRelay(room) {
-  const theme = pickWord([]);
-  const groups = relayGroups(room).map((ids) => ({
-    order: shuffle(ids),
-    turn: 0,
-    entries: [],
-    draftUrl: null,
-    draftPrompt: null,
-    endsAt: now() + room.options.imageSeconds * 1000,
-    done: false,
-    score: null,
-  }));
-  return { theme, groups };
-}
-
 function present(room, id) {
   return room.players.some((p) => p.id === id);
 }
@@ -508,44 +491,18 @@ function nextPresent(room, order, from) {
   return null;
 }
 
-function relayLastUrl(group) {
-  for (let i = group.entries.length - 1; i >= 0; i--) {
-    if (group.entries[i].url) return group.entries[i].url;
+function groupsFor(room) {
+  if (isTeamGame(room)) {
+    return [0, 1].map((t) => room.players.filter((p) => p.team === t).map((p) => p.id));
   }
-  return null;
-}
-
-function relayNextTurn(room, group, gi) {
-  group.turn += 1;
-  group.draftUrl = null;
-  group.draftPrompt = null;
-  if (group.turn >= group.order.length) {
-    group.done = true;
-    group.score = null;
-  } else {
-    group.endsAt = now() + room.options.imageSeconds * 1000;
-  }
-}
-
-function advRelay(room) {
-  const g = room.game;
-  g.groups.forEach((group, gi) => {
-    if (group.done) return;
-    const pid = group.order[group.turn];
-    if (!present(room, pid) || now() >= group.endsAt) {
-      const p = room.players.find((x) => x.id === pid);
-      group.entries.push({ playerId: pid, nickname: p?.nickname ?? '?', prompt: null, url: relayLastUrl(group), skipped: true });
-      relayNextTurn(room, group, gi);
-    }
-  });
-  if (g.groups.every((gr) => gr.done)) room.status = 'finished';
+  return [room.players.map((p) => p.id)];
 }
 
 // ── 협동: 각자 한 조각씩 맡아 하나의 그림 완성 ───────────────
 
 function initCoop(room) {
   const theme = pickWord([]);
-  const groups = relayGroups(room).map((ids) => {
+  const groups = groupsFor(room).map((ids) => {
     const cols = Math.ceil(Math.sqrt(ids.length));
     return { members: ids, cols, score: null };
   });
@@ -573,14 +530,11 @@ function advCoop(room) {
 // ── 임포스터: 한 명만 키워드를 모른 채 그림 생성 ─────────────
 
 function initImposter(room) {
-  const moderatorId = room.options.moderator ? room.players.find((p) => p.isHost).id : null;
-  const rolePlayers = room.players.filter((p) => p.id !== moderatorId);
-  const imposterId = rolePlayers[Math.floor(Math.random() * rolePlayers.length)].id;
+  const imposterId = room.players[Math.floor(Math.random() * room.players.length)].id;
   return {
-    moderatorId,
     imposterId,
     keyword: pickWord([]),
-    order: shuffle(rolePlayers.map((p) => p.id)),
+    order: shuffle(room.players.map((p) => p.id)),
     turn: 0,
     entries: [],
     draftUrl: null,
@@ -614,13 +568,12 @@ function imposterFinish(room, g, guessText, forcedWon?) {
 function advImposter(room) {
   const g = room.game;
   if (!room.players.some((p) => p.id === g.imposterId)) return imposterFinish(room, g, null, false);
-  if (!room.players.some((p) => p.id !== g.imposterId && p.id !== g.moderatorId)) {
+  if (!room.players.some((p) => p.id !== g.imposterId)) {
     return imposterFinish(room, g, null, true);
   }
   if (g.phase === 'turns' && (!present(room, g.order[g.turn]) || now() >= g.endsAt)) {
     const pid = g.order[g.turn];
-    const p = room.players.find((x) => x.id === pid);
-    g.entries.push({ playerId: pid, nickname: p?.nickname ?? '?', url: null, prompt: null, skipped: true });
+    g.entries.push({ playerId: pid, nickname: nicknameOf(room, pid), url: null, prompt: null, skipped: true });
     imposterNextTurn(room, g);
   } else if (g.phase === 'guess' && now() >= g.endsAt) {
     imposterFinish(room, g, null);
@@ -653,12 +606,6 @@ export function canGenerate(room, playerId) {
       if (g.teams[t].image) return { error: 'errAlreadySubmitted' };
       return { keyword: g.keyword };
     }
-    case 'relay': {
-      const gi = isTeamGame(room) ? player.team : 0;
-      const group = g.groups[gi];
-      if (!group || group.done || group.order[group.turn] !== playerId) return { error: 'errNotYourTurn' };
-      return { keyword: null };
-    }
     case 'coop': {
       if (g.subs.get(playerId)?.submitted) return { error: 'errAlreadySubmitted' };
       return { keyword: null };
@@ -670,32 +617,6 @@ export function canGenerate(room, playerId) {
     }
     default:
       return { error: 'errBadMode' };
-  }
-}
-
-export function sourceImageUrl(room, playerId) {
-  const g = room.game;
-  if (!g) return null;
-  const player = room.players.find((p) => p.id === playerId);
-  switch (room.mode) {
-    case 'classic':
-      return g.submissions.get(playerId)?.url ?? null;
-    case 'speed':
-      return g.draftUrl ?? null;
-    case 'speed_team':
-      return player ? g.teams[player.team]?.draftUrl ?? null : null;
-    case 'relay': {
-      const gi = isTeamGame(room) ? player?.team ?? 0 : 0;
-      const group = g.groups[gi];
-      if (!group) return null;
-      return group.draftUrl ?? relayLastUrl(group);
-    }
-    case 'coop':
-      return g.subs.get(playerId)?.url ?? null;
-    case 'imposter':
-      return g.draftUrl ?? null;
-    default:
-      return null;
   }
 }
 
@@ -716,12 +637,6 @@ export function applyDraft(room, playerId, prompt, url) {
       const t = player.team;
       g.teams[t].draftUrl = url;
       g.teams[t].draftPrompt = prompt;
-      break;
-    }
-    case 'relay': {
-      const gi = isTeamGame(room) ? player.team : 0;
-      g.groups[gi].draftUrl = url;
-      g.groups[gi].draftPrompt = prompt;
       break;
     }
     case 'coop': {
@@ -771,16 +686,6 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
       if (g.drawers[t] !== playerId) return { error: 'errNotYourTurn' };
       if (!g.teams[t].draftUrl) return { error: 'errGenerateFirst' };
       g.teams[t].image = g.teams[t].draftUrl;
-      return {};
-    }
-    case 'relay': {
-      const gi = isTeamGame(room) ? player.team : 0;
-      const group = g.groups[gi];
-      if (!group || group.done || group.order[group.turn] !== playerId) return { error: 'errNotYourTurn' };
-      if (!group.draftUrl) return { error: 'errGenerateFirst' };
-      group.entries.push({ playerId, nickname: player.nickname, prompt: group.draftPrompt, url: group.draftUrl, skipped: false });
-      relayNextTurn(room, group, gi);
-      advance(room);
       return {};
     }
     case 'coop': {

@@ -65,7 +65,6 @@ const MODE_META = [
   { id: 'classic', Icon: Phone, min: 2 },
   { id: 'speed', Icon: Zap, min: 2 },
   { id: 'speed_team', Icon: Flag, min: 2 },
-  { id: 'relay', Icon: Pencil, min: 2 },
   { id: 'coop', Icon: Users, min: 2 },
   { id: 'imposter', Icon: Eye, min: 3 },
 ];
@@ -74,7 +73,6 @@ const MODE_LABEL_KEY = {
   classic: 'modeClassic',
   speed: 'modeSpeed',
   speed_team: 'modeSpeedTeam',
-  relay: 'modeRelay',
   coop: 'modeCoop',
   imposter: 'modeImposter',
 };
@@ -123,7 +121,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
 
   const o = state.options;
   const mode = state.mode;
-  const showTeamToggle = ['speed', 'relay', 'coop'].includes(mode);
+  const showTeamToggle = ['speed', 'coop'].includes(mode);
 
   return (
     <div className="space-y-4">
@@ -214,7 +212,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
               />
             </label>
           )}
-          {['relay', 'coop'].includes(mode) && (
+          {mode === 'coop' && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>{t('optScored')}</span>
               <OptionSwitch
@@ -222,17 +220,6 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
                 isDisabled={!isHost}
                 label={t('optScored')}
                 onChange={(checked) => setOption('scored', checked)}
-              />
-            </label>
-          )}
-          {mode === 'imposter' && (
-            <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
-              <span>{t('optModerator')}</span>
-              <OptionSwitch
-                isSelected={o.moderator}
-                isDisabled={!isHost}
-                label={t('optModerator')}
-                onChange={(checked) => setOption('moderator', checked)}
               />
             </label>
           )}

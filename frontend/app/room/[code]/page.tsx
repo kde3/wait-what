@@ -136,12 +136,11 @@ export default function Room({ params }: any) {
       if (dropped) sessionStorage.removeItem(`gp_player_${code}`);
       router.push('/');
     };
-    const title = gone ? t('roomGoneTitle') : disconnected ? t('disconnectedTitle') : t('droppedTitle');
-    const message = gone ? t('errRoomNotFound') : disconnected ? t('errDisconnected') : t('errDropped');
+    const reason = gone ? 'gone' : disconnected ? 'disconnected' : 'dropped';
     return (
       <>
         <Header onBack={goHome} />
-        <ExitModal isOpen title={title} message={message} onGoHome={goHome} />
+        <ExitModal reason={reason} onGoHome={goHome} />
       </>
     );
   }
@@ -173,6 +172,9 @@ export default function Room({ params }: any) {
                   <Input
                     autoFocus
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     data-1p-ignore
                     data-lpignore="true"
                     data-bwignore

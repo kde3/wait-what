@@ -17,7 +17,6 @@ const MODE_KEY = {
   classic: 'modeClassic',
   speed: 'modeSpeed',
   speed_team: 'modeSpeedTeam',
-  relay: 'modeRelay',
   coop: 'modeCoop',
   imposter: 'modeImposter',
 };
@@ -80,7 +79,7 @@ export default function HomeView() {
     setShowCreate(true);
   }
 
-  const openRooms = publicRooms.filter((r) => r.status === 'room' && r.players < 10);
+  const openRooms = publicRooms.filter((r) => r.status === 'room' && r.players < r.maxPlayers);
 
   function joinRandomRoom() {
     if (!openRooms.length) return setError(t('errNoOpenRoom'));
@@ -201,6 +200,7 @@ export default function HomeView() {
                 maxLength={4}
                 autoComplete="off"
                 autoCorrect="off"
+                autoCapitalize="none"
                 spellCheck={false}
                 placeholder={t('codePlaceholder')}
                 value={joinCode}
@@ -239,7 +239,7 @@ export default function HomeView() {
                   <div className="flex min-w-0 flex-col gap-1">
                     <b>{r.name}</b>
                     <span className="text-xs text-muted">
-                      {t(MODE_KEY[r.mode])} · {r.players}/10 ·{' '}
+                      {t(MODE_KEY[r.mode])} · {r.players}/{r.maxPlayers} ·{' '}
                       {r.status === 'room' ? t('statusRoom') : r.status === 'playing' ? t('statusPlaying') : t('statusFinished')}
                     </span>
                   </div>
@@ -290,6 +290,10 @@ export default function HomeView() {
                 <Input
                   type="text"
                   maxLength={30}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   placeholder={suggestedRoomName}
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
@@ -300,6 +304,9 @@ export default function HomeView() {
                   <Label>{t('roomPassword')}</Label>
                   <Input
                     autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     data-1p-ignore
                     data-lpignore="true"
                     data-bwignore

@@ -7,12 +7,13 @@ interface PublicRoomSummary {
   mode: GameMode;
   status: RoomStatus;
   players: number;
+  maxPlayers: number;
 }
 
 export const homeRooms: PublicRoomSummary[] = [
-  { code: 'PLAY', name: 'AI 그림 전화방', mode: 'classic', status: 'room', players: 3 },
-  { code: 'RELY', name: '릴레이 연습방', mode: 'relay', status: 'playing', players: 6 },
-  { code: 'IMPS', name: '임포스터 한 판', mode: 'imposter', status: 'room', players: 5 },
+  { code: 'PLAY', name: 'AI 그림 전화방', mode: 'classic', status: 'room', players: 3, maxPlayers: 12 },
+  { code: 'COOP', name: '협동 연습방', mode: 'coop', status: 'playing', players: 6, maxPlayers: 12 },
+  { code: 'IMPS', name: '임포스터 한 판', mode: 'imposter', status: 'room', players: 5, maxPlayers: 12 },
 ];
 
 export const emptyHomeRooms: PublicRoomSummary[] = [];
@@ -24,6 +25,7 @@ export const roomState: RoomState = {
   status: 'room',
   mode: 'classic',
   teamGame: false,
+  maxPlayers: 12,
   options: {
     difficulty: 'normal',
     textSeconds: 45,
@@ -33,7 +35,6 @@ export const roomState: RoomState = {
     fixedDrawer: false,
     fixedDrawerIndex: 0,
     scored: true,
-    moderator: false,
   },
   players: [
     { nickname: '익명 방장', isHost: true, team: null, score: 0, you: true },
@@ -45,7 +46,7 @@ export const roomState: RoomState = {
 
 export const teamRoomState: RoomState = {
   ...roomState,
-  mode: 'relay',
+  mode: 'coop',
   teamGame: true,
   options: { ...roomState.options, teamMode: true },
   players: [

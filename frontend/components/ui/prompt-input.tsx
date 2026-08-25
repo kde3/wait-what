@@ -66,6 +66,10 @@ export function PromptInput({
       <textarea
         ref={textareaRef}
         aria-label={label.input}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
         className="block min-h-14 w-full resize-none overflow-hidden border-0 bg-transparent px-2 py-2 text-foreground outline-none placeholder:text-muted focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
         disabled={disabled || isPending}
         maxLength={maxLength}

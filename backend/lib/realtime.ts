@@ -4,7 +4,6 @@
 // globalThis에 등록된 소켓을 읽어 실제 전송을 한다. 두 쪽이 같은 프로세스라 방 상태를 그대로 공유한다.
 import { getRoom, advance, listPublicRooms, removePlayer, deleteRoom } from './store';
 import { buildState } from './serialize';
-import { scorePendingGroups, dropPendingScores } from './scoring';
 
 export const HOME = '@HOME';
 
@@ -42,10 +41,7 @@ export function scheduleLeave(code, playerId) {
     const room = getRoom(code);
     if (!room) return;
     if (!removePlayer(room, playerId)) return;
-    if (!room.players.length) {
-      dropPendingScores(room.code);
-      deleteRoom(room.code);
-    }
+    if (!room.players.length) deleteRoom(room.code);
     touch(room.code);
     touch(HOME);
   }, RECONNECT_GRACE_MS);
@@ -150,7 +146,6 @@ function tick() {
 
     const before = stateKey(room);
     advance(room);
-    scorePendingGroups(room, touch);
     const changed = stateKey(room) !== before;
     const wasDirty = pending.delete(code);
     if (changed || wasDirty) {
