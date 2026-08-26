@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "flux-doodle-proxy",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-25",
+  "routes": [
+    {
+      "pattern": "demo.dominho.me",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "ORIGIN_BASE_URL": "https://api.dominho.me"
+  },
+  "secrets": {
+    "required": [
+      "CF_ACCESS_CLIENT_ID",
+      "CF_ACCESS_CLIENT_SECRET"
+    ]
+  }
+}
