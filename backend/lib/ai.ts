@@ -44,11 +44,13 @@ async function call(path: string, init: RequestInit) {
   return response;
 }
 
-export async function generateImage(prompt: string) {
+export type ImageDifficulty = 'easy' | 'normal' | 'hard';
+
+export async function generateImage(prompt: string, difficulty: ImageDifficulty = 'normal') {
   const response = await call('/generate', {
     method: 'POST',
     headers: { ...accessHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, difficulty }),
   });
   return Buffer.from(await response.arrayBuffer());
 }

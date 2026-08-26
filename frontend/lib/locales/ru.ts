@@ -106,7 +106,7 @@ export const dict = {
   optDifficulty: 'Сложность',
   difficultyNormal: 'Обычная',
   difficultyHard: 'Сложная',
-  difficultyHell: 'Ад',
+  difficultyEasy: 'Лёгкая',
   optTextSeconds: 'Время на текст/ответ',
   optImageSeconds: 'Время на рисунок',
   optRounds: 'Раунды',

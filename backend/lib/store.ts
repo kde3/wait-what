@@ -21,7 +21,7 @@ export const MIN_PLAYERS = { classic: 1, speed: 2, speed_team: 2, coop: 1, chaos
 
 const MAX_CHAT = 60;
 
-export const DIFFICULTIES = ['normal', 'hard', 'hell'];
+export const DIFFICULTIES = ['easy', 'normal', 'hard'];
 
 export const DEFAULT_OPTIONS = {
   difficulty: 'normal',

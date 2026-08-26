@@ -14,7 +14,6 @@ import {
   stayInRoom,
   setTeam,
   startGame,
-  chatAction,
   submitAction,
   unsubmitAction,
   voteAction,
@@ -116,15 +115,6 @@ apiRouter.post('/rooms/:code/restart', (req, res) => {
   res.json({ ok: true });
 });
 
-apiRouter.post('/rooms/:code/chat', (req, res) => {
-  const room = roomOr404(req, res);
-  if (!room) return;
-  const result = chatAction(room, req.body?.playerId, req.body?.text);
-  if (result.error) return res.status(400).json({ error: result.error });
-  touch(room.code);
-  res.json({ ok: true });
-});
-
 apiRouter.post('/rooms/:code/generate', async (req, res) => {
   const room = roomOr404(req, res);
   if (!room) return;
@@ -140,7 +130,7 @@ apiRouter.post('/rooms/:code/generate', async (req, res) => {
   let url;
   if (aiEnabled()) {
     try {
-      const png = await generateImage(prompt);
+      const png = await generateImage(prompt, room.options.difficulty);
       url = putImage(room.code, png);
     } catch (error) {
       const code = error instanceof AiError ? error.code : 'errAiFailed';

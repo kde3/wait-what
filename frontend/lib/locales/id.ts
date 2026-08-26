@@ -106,7 +106,7 @@ export const dict = {
   optDifficulty: 'Kesulitan',
   difficultyNormal: 'Normal',
   difficultyHard: 'Sulit',
-  difficultyHell: 'Neraka',
+  difficultyEasy: 'Mudah',
   optTextSeconds: 'Waktu teks/tebakan',
   optImageSeconds: 'Waktu menggambar',
   optRounds: 'Jumlah ronde',

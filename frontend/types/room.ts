@@ -10,7 +10,7 @@ export interface Player {
   you?: boolean;
 }
 
-export type Difficulty = 'normal' | 'hard' | 'hell';
+export type Difficulty = 'easy' | 'normal' | 'hard';
 
 export interface RoomOptions {
   difficulty: Difficulty;

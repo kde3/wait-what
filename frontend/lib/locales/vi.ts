@@ -106,7 +106,7 @@ export const dict = {
   optDifficulty: 'Độ khó',
   difficultyNormal: 'Thường',
   difficultyHard: 'Khó',
-  difficultyHell: 'Địa ngục',
+  difficultyEasy: 'Dễ',
   optTextSeconds: 'Thời gian viết/đoán',
   optImageSeconds: 'Thời gian vẽ',
   optRounds: 'Số vòng',
