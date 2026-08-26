@@ -75,6 +75,7 @@ function buildGameView(room, you) {
         drawer: nicknameOf(room, g.drawerId),
         youAreDrawer: isDrawer,
         keyword: isDrawer || reveal ? g.keyword : null,
+        liveImage: g.phase === 'draw' ? g.draftUrl ?? null : null,
         image: g.phase === 'guess' ? g.image : reveal ? g.image ?? g.draftUrl : null,
         draft: isDrawer ? { prompt: g.draftPrompt, url: g.draftUrl } : null,
         guesses: g.guesses.slice(-12).map((x) => ({
