@@ -279,8 +279,13 @@ describe('config / start / submit / guess', () => {
     expect(generated.data.url).toMatch(/^\/api\/mock-image\?/);
 
     const stateAfterGeneration = await get(`/rooms/${host.code}/state?playerId=${guesserId}`);
-    expect(stateAfterGeneration.data.game.phase).toBe('guess');
-    expect(stateAfterGeneration.data.game.image).toBe(generated.data.url);
+    expect(stateAfterGeneration.data.game.phase).toBe('draw');
+    expect(stateAfterGeneration.data.game.liveImage).toBe(generated.data.url);
+
+    const regenerated = await post(`/rooms/${host.code}/generate`, { playerId: drawerId, prompt: '달빛 아래 초원 풍경' });
+    expect(regenerated.status).toBe(200);
+    const stateAfterRegeneration = await get(`/rooms/${host.code}/state?playerId=${guesserId}`);
+    expect(stateAfterRegeneration.data.game.liveImage).toBe(regenerated.data.url);
 
     const correct = await post(`/rooms/${host.code}/guess`, { playerId: guesserId, text: keyword.en });
     expect(correct.status).toBe(200);
