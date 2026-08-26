@@ -75,7 +75,7 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {g.entries.map((e, i) => (
               <div key={i} className="space-y-2 rounded-lg border p-2 text-center text-sm">
-                {e.url ? <img src={apiUrl(e.url)} alt={e.nickname} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
+                {e.url ? <img className={g.phase === 'guess' ? 'select-none' : undefined} src={apiUrl(e.url)} alt={e.nickname} draggable={g.phase !== 'guess'} /> : <div className="grid size-full min-h-24 place-items-center bg-surface-secondary text-xs text-muted">{t('skipped')}</div>}
                 <span>{e.nickname}</span>
               </div>
             ))}

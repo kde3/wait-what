@@ -68,7 +68,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
             />
           ) : (
             <>
-              {g.image && <img className="w-full rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" />}
+              {g.image && <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" draggable={false} />}
               <GuessPanel guesses={g.guesses} disabled busy={busy} />
             </>
           )}
@@ -88,7 +88,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
           ) : (
             <>
               <h2>{t('speedGuessTitle')}</h2>
-              {g.image && <img className="w-full rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" />}
+              {g.image && <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" draggable={false} />}
               <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
             </>
           )}

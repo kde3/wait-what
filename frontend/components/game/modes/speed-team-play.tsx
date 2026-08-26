@@ -81,7 +81,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
               <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground"><Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(g.keyword, lang)}</div>
               {mine.imageReady ? (
                 <>
-                  <img className="w-full rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" />
+                  <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" draggable={false} />
                   <GuessPanel guesses={g.guesses} disabled busy={busy} />
                 </>
               ) : (
@@ -101,7 +101,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
             </>
           ) : mine.imageReady ? (
             <>
-              <img className="w-full rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" />
+              <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" draggable={false} />
               <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
             </>
           ) : (

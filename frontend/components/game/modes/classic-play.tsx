@@ -123,9 +123,9 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
               <h2>{t('guessTitle')}</h2>
               {g.task.sourceImage ? (
                 g.kind === 'chaos' ? (
-                  <ChaosAffectedImage src={g.task.sourceImage} characterId={g.task.chaosCharacterId as ChaosCharacterId} />
+                  <ChaosAffectedImage src={g.task.sourceImage} characterId={g.task.chaosCharacterId as ChaosCharacterId} draggable={false} />
                 ) : (
-                  <img className="w-full rounded-lg border object-cover" src={apiUrl(g.task.sourceImage)} alt="AI" />
+                  <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(g.task.sourceImage)} alt="AI" draggable={false} />
                 )
               ) : (
                 <p className="text-center text-sm text-muted">{t('guessHint')}</p>

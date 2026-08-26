@@ -8,6 +8,7 @@ interface ChaosAffectedImageProps {
   characterId?: ChaosCharacterId | null;
   alt?: string;
   className?: string;
+  draggable?: boolean;
 }
 
 function hashUrl(value: string) {
@@ -30,7 +31,7 @@ function seededShuffle(seed: number) {
   return order;
 }
 
-export function ChaosAffectedImage({ src, characterId, alt = 'AI', className = '' }: ChaosAffectedImageProps) {
+export function ChaosAffectedImage({ src, characterId, alt = 'AI', className = '', draggable = true }: ChaosAffectedImageProps) {
   const imageUrl = apiUrl(src);
   const seed = hashUrl(src);
   const frameClass = `relative aspect-[4/3] w-full overflow-hidden rounded-lg border bg-surface-secondary ${className}`;
@@ -45,7 +46,7 @@ export function ChaosAffectedImage({ src, characterId, alt = 'AI', className = '
     ];
     return (
       <div className={frameClass}>
-        <img className="size-full object-cover" src={imageUrl} alt={alt} />
+        <img className="size-full select-none object-cover" src={imageUrl} alt={alt} draggable={draggable} />
         <div className={`absolute bg-surface ${coverClasses[side]}`} aria-hidden="true" />
       </div>
     );
@@ -80,9 +81,10 @@ export function ChaosAffectedImage({ src, characterId, alt = 'AI', className = '
     return (
       <div className={frameClass}>
         <img
-          className="size-full object-cover"
+          className="size-full select-none object-cover"
           src={imageUrl}
           alt={alt}
+          draggable={draggable}
           style={{ transform: `scale(${zoom})`, transformOrigin: origins[seed % origins.length] }}
         />
         <div
@@ -101,10 +103,10 @@ export function ChaosAffectedImage({ src, characterId, alt = 'AI', className = '
       'hue-rotate(75deg) saturate(1.35)',
       'brightness(0.9) contrast(1.25) saturate(0.8)',
     ];
-    return <img className={`w-full rounded-lg border object-cover ${className}`} src={imageUrl} alt={alt} style={{ filter: presets[seed % presets.length] }} />;
+    return <img className={`w-full select-none rounded-lg border object-cover ${className}`} src={imageUrl} alt={alt} draggable={draggable} style={{ filter: presets[seed % presets.length] }} />;
   }
 
-  return <img className={`w-full rounded-lg border object-cover ${className}`} src={imageUrl} alt={alt} />;
+  return <img className={`w-full select-none rounded-lg border object-cover ${className}`} src={imageUrl} alt={alt} draggable={draggable} />;
 }
 
 export default ChaosAffectedImage;
