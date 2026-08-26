@@ -280,7 +280,8 @@ describe('classic', () => {
     startGame(room, ids[0]);
     submitAction(room, ids[0], { text: '고양이' });
     submitAction(room, ids[1], { text: '강아지' });
-    expect(canGenerate(room, ids[0])).toEqual({ keyword: null });
+    expect(canGenerate(room, ids[0])).toEqual({ keyword: '강아지' });
+    expect(promptViolation(room, '귀여운 강아지 그림', canGenerate(room, ids[0]).keyword)).toBe('강아지');
     expect(submitAction(room, ids[0], {}).error).toBe('errGenerateFirst');
     applyDraft(room, ids[0], '고양이 그림', '/api/mock-image?s=1');
     expect(submitAction(room, ids[0], {})).toEqual({});
@@ -333,13 +334,15 @@ describe('classic', () => {
 });
 
 describe('chaos', () => {
-  it('게임 시작 시 6개 캐릭터 중 정확히 하나를 서버가 선택한다', () => {
+  it('게임 시작 시 7개 캐릭터 중 정확히 하나를 서버가 선택하고 공개 단계를 8초간 유지한다', () => {
     const { room, ids } = makeRoom(2);
     configRoom(room, ids[0], { mode: 'chaos' });
+    const startedAt = Date.now();
     expect(startGame(room, ids[0])).toEqual({});
     expect(CHAOS_CHARACTERS.map((character) => character.id)).toContain(room.game.chaosCharacterId);
     expect(room.game.phase).toBe('reveal');
     expect(room.game.chaosCharacterId).toBeTruthy();
+    expect(room.game.revealEndsAt - startedAt).toBe(8000);
   });
 
   it('reveal 동안 행동을 막고 종료 후 클래식 흐름을 그대로 사용한다', () => {
@@ -378,7 +381,7 @@ describe('speed', () => {
     return { room, ids };
   }
 
-  it('draw → submit → guess 순으로 진행된다', () => {
+  it('생성 전부터 정답을 시도할 수 있고 이미지 확정 시 타이머가 초기화되지 않는다', () => {
     const { room, ids } = speedRoom();
     const g = room.game;
     expect(g.phase).toBe('draw');
@@ -386,11 +389,14 @@ describe('speed', () => {
     const guesser = ids.find((id) => id !== drawer);
     expect(canGenerate(room, guesser).error).toBe('errNotYourTurn');
     expect(canGenerate(room, drawer).keyword).toBe(g.keyword);
+    expect(guessAction(room, guesser, '완전 오답')).toEqual({ correct: false });
     expect(submitAction(room, drawer, {}).error).toBe('errGenerateFirst');
+    const endsAt = g.endsAt;
     applyDraft(room, drawer, '그림', '/api/mock-image?s=1');
     expect(submitAction(room, drawer, {})).toEqual({});
     expect(g.phase).toBe('guess');
     expect(g.image).toBe('/api/mock-image?s=1');
+    expect(g.endsAt).toBe(endsAt);
   });
 
   it('정답을 맞히면 개인전에서는 맞힌 사람과 그린 사람이 각각 +1', () => {
@@ -496,11 +502,11 @@ describe('speed_team', () => {
     expect(room.players.find((p) => p.id === g.drawers[1]).team).toBe(1);
   });
 
-  it('자기 팀 이미지가 없으면 guess할 수 없다', () => {
+  it('자기 팀 이미지가 없어도 guess할 수 있다', () => {
     const { room } = teamRoom();
     const g = room.game;
     const guesser = room.players.find((p) => p.team === 0 && p.id !== g.drawers[0]).id;
-    expect(guessAction(room, guesser, g.keyword.ko).error).toBe('errWaitTeamImage');
+    expect(guessAction(room, guesser, '완전 오답')).toEqual({ correct: false });
   });
 
   it('drawer가 제출하면 팀 이미지가 확정되고 정답 시 teamScores가 오른다', () => {
@@ -532,7 +538,7 @@ describe('coop', () => {
     const { room, ids } = makeRoom(1);
     configRoom(room, ids[0], { mode: 'coop' });
     startGame(room, ids[0]);
-    expect(canGenerate(room, ids[0])).toEqual({ keyword: null });
+    expect(canGenerate(room, ids[0])).toEqual({ keyword: room.game.theme });
     expect(submitAction(room, ids[0], {}).error).toBe('errGenerateFirst');
     applyDraft(room, ids[0], '조각 그림', 'url');
     submitAction(room, ids[0], {});
@@ -609,14 +615,13 @@ describe('imposter', () => {
     expect(submitAction(room, notCurrent, {}).error).toBe('errNotYourTurn');
   });
 
-  it('임포스터에게는 keyword가 없고 시민에게는 keyword가 주어진다', () => {
+  it('생성 검사에는 임포스터를 포함해 모두 같은 keyword가 주어진다', () => {
     const { room } = imposterRoom();
     const g = room.game;
     for (let turn = 0; turn < g.order.length; turn++) {
       const pid = g.order[g.turn];
       const check = canGenerate(room, pid);
-      if (pid === g.imposterId) expect(check.keyword).toBeNull();
-      else expect(check.keyword).toBe(g.keyword);
+      expect(check.keyword).toBe(g.keyword);
       playTurn(room);
     }
     expect(g.phase).toBe('vote');
@@ -624,13 +629,16 @@ describe('imposter', () => {
     expect(g.entries.every((e) => !e.skipped)).toBe(true);
   });
 
-  it('시민은 키워드가 프롬프트에 들어가면 반려되고 임포스터는 제한이 없다', () => {
+  it('언어와 역할에 관계없이 키워드가 프롬프트에 들어가면 반려된다', () => {
     const { room } = imposterRoom();
     const g = room.game;
     expect(promptViolation(room, `아주 멋진 ${g.keyword.ko} 그림`, g.keyword)).toBe(g.keyword.ko);
     expect(promptViolation(room, `beautiful ${g.keyword.en} art`, g.keyword)).toBe(g.keyword.en);
     expect(promptViolation(room, '키워드 없는 평범한 그림', g.keyword)).toBeNull();
-    expect(promptViolation(room, `아주 멋진 ${g.keyword.ko} 그림`, null)).toBeNull();
+    const imposterCheck = canGenerate(room, g.imposterId);
+    if (!imposterCheck.error) {
+      expect(promptViolation(room, `아주 멋진 ${g.keyword.ko} 그림`, imposterCheck.keyword)).toBe(g.keyword.ko);
+    }
   });
 
   it('차례 타임아웃이면 skipped 엔트리가 쌓인다', () => {
@@ -640,6 +648,21 @@ describe('imposter', () => {
     timeout(room);
     expect(g.turn).toBe(1);
     expect(g.entries[0]).toMatchObject({ playerId: first, url: null, skipped: true });
+  });
+
+  it('차례 중 한 번이라도 생성했으면 타임아웃 시 마지막 이미지를 사용한다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    const first = g.order[0];
+    applyDraft(room, first, '첫 번째 프롬프트', 'url-first');
+    applyDraft(room, first, '마지막 프롬프트', 'url-last');
+    timeout(room);
+    expect(g.entries[0]).toMatchObject({
+      playerId: first,
+      url: 'url-last',
+      prompt: '마지막 프롬프트',
+      skipped: false,
+    });
   });
 
   it('전원 차례가 끝나면 vote phase가 되고 아직 추리할 수 없다', () => {

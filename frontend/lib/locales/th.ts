@@ -109,6 +109,7 @@ export const dict = {
   difficultyEasy: 'ง่าย',
   optTextSeconds: 'เวลาพิมพ์/ทาย',
   optImageSeconds: 'เวลาวาดภาพ',
+  optSpeedSeconds: 'เวลาสร้างและทาย',
   optRounds: 'จำนวนรอบ',
   optBannedWords: 'บทลงโทษ: คำต้องห้าม',
   bannedWordsPlaceholder: 'คั่นด้วยจุลภาค (เช่น น่ารัก, cute)',

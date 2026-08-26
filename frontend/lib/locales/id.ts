@@ -109,6 +109,7 @@ export const dict = {
   difficultyEasy: 'Mudah',
   optTextSeconds: 'Waktu teks/tebakan',
   optImageSeconds: 'Waktu menggambar',
+  optSpeedSeconds: 'Waktu membuat dan menebak',
   optRounds: 'Jumlah ronde',
   optBannedWords: 'Penalti: kata terlarang',
   bannedWordsPlaceholder: 'Pisahkan dengan koma (contoh: lucu, cute)',

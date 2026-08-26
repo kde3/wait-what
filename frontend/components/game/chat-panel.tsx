@@ -33,7 +33,7 @@ export function ChatPanel({ messages = [], busy = false, className, feedClassNam
   }
 
   return (
-    <div className={twMerge('rounded-xl border bg-surface p-5 text-foreground shadow-sm', className)}>
+    <div className={twMerge('min-w-0 rounded-xl border bg-surface p-5 text-foreground shadow-sm', className)}>
       <h2>{t('chatTitle')}</h2>
       <ScrollFeed bottomKey={messages.length} className={twMerge('mt-2', feedClassName)}>
         {messages.length === 0 ? (
@@ -47,8 +47,9 @@ export function ChatPanel({ messages = [], busy = false, className, feedClassNam
           ))
         )}
       </ScrollFeed>
-      <div className="mt-2 flex items-start gap-2">
+      <div className="mt-2 flex min-w-0 items-start gap-2">
         <Input
+          className="min-w-0 flex-1"
           type="text"
           maxLength={200}
           autoComplete="off"

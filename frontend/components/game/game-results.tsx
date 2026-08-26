@@ -13,6 +13,31 @@ import { CHAOS_CHARACTER_BY_ID, type ChaosCharacterId } from '../../lib/chaos';
 import { ChaosCharacter } from './chaos-character';
 import { ChaosAffectedImage } from './chaos-affected-image';
 
+function ChaosImageComparison({ item, fallbackCharacterId, t }: any) {
+  const characterId = (item.chaosCharacterId ?? fallbackCharacterId) as ChaosCharacterId;
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <figure className="space-y-2">
+          <figcaption className="text-xs font-medium text-muted">{t('chaosOriginalImage')}</figcaption>
+          <img className="aspect-[4/3] w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt={t('chaosOriginalImage')} />
+        </figure>
+        <figure className="space-y-2">
+          <figcaption className="text-xs font-medium text-muted">{t('chaosViewedImage')}</figcaption>
+          <ChaosAffectedImage src={item.url} characterId={characterId} alt={t('chaosViewedImage')} />
+        </figure>
+      </div>
+      {characterId && (
+        <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-1 font-mono text-xs font-bold text-danger">
+          {fallbackCharacterId === 'null' ? 'NULL → ' : '⚠ '}
+          {t(CHAOS_CHARACTER_BY_ID[characterId].nameKey)}
+        </span>
+      )}
+    </>
+  );
+}
+
 export default function GameResults({ state, playerId, api, busy, onLeave }: any) {
   const { t, lang } = useI18n();
   const [albumIndex, setAlbumIndex] = useState(0);
@@ -67,15 +92,9 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
                 ) : item.url ? (
                   <>
                     {r.kind === 'chaos' ? (
-                      <ChaosAffectedImage src={item.url} characterId={item.chaosCharacterId as ChaosCharacterId} />
+                      <ChaosImageComparison item={item} fallbackCharacterId={r.chaosCharacterId} t={t} />
                     ) : (
                       <img className="w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt="AI" />
-                    )}
-                    {r.kind === 'chaos' && item.chaosCharacterId && (
-                      <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-1 font-mono text-xs font-bold text-danger">
-                        {r.chaosCharacterId === 'null' ? 'NULL → ' : '⚠ '}
-                        {t(CHAOS_CHARACTER_BY_ID[item.chaosCharacterId as ChaosCharacterId].nameKey)}
-                      </span>
                     )}
                     {item.prompt && (
                       <p className="text-sm text-muted">

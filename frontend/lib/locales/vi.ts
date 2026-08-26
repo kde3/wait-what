@@ -109,6 +109,7 @@ export const dict = {
   difficultyEasy: 'Dễ',
   optTextSeconds: 'Thời gian viết/đoán',
   optImageSeconds: 'Thời gian vẽ',
+  optSpeedSeconds: 'Thời gian tạo và đoán',
   optRounds: 'Số vòng',
   optBannedWords: 'Hình phạt: từ cấm',
   bannedWordsPlaceholder: 'Cách nhau bằng dấu phẩy (VD: dễ thương, cute)',

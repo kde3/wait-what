@@ -21,7 +21,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
   const { prompt, setPrompt, imageUrl, setImageUrl } = useDraft(g.draft, `${g.round}`);
   const { generating, generate, cancelGenerate } = useGenerate(api, playerId, setImageUrl);
   const remaining = useCountdown(g.remaining, `${g.round}:${g.phase}`);
-  const totalSecs = g.phase === 'play' ? state.options.imageSeconds + state.options.textSeconds : 6;
+  const totalSecs = g.phase === 'play' ? state.options.speedSeconds : 6;
   const myTeam = g.yourTeam;
   const mine = g.teams[myTeam];
   const other = g.teams[1 - myTeam];
@@ -81,7 +81,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
               <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground"><Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(g.keyword, lang)}</div>
               {mine.imageReady ? (
                 <>
-                  <img className="w-full rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" />
+                  <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" draggable={false} />
                   <GuessPanel guesses={g.guesses} disabled busy={busy} />
                 </>
               ) : (
@@ -93,15 +93,12 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
                   busy={busy}
                   onGenerate={() => generate(prompt)}
                   onCancelGenerate={cancelGenerate}
-                  onSubmit={async () => {
-                    if (await api('submit', { playerId })) sfx.submit();
-                  }}
                 />
               )}
             </>
           ) : mine.imageReady ? (
             <>
-              <img className="w-full rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" />
+              <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" draggable={false} />
               <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
             </>
           ) : (
@@ -110,7 +107,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
                 <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
                 {t('teamImageWaiting')}
               </div>
-              <GuessPanel guesses={g.guesses} disabled busy={busy} />
+              <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
             </>
           )}
           {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}

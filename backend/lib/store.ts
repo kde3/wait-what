@@ -27,6 +27,7 @@ export const DEFAULT_OPTIONS = {
   difficulty: 'normal',
   textSeconds: 45, // 제시어 작성/맞히기 제한시간
   imageSeconds: 90, // 그림(프롬프트+생성) 제한시간
+  speedSeconds: 120, // 스피드 퀴즈 생성+맞히기 통합 제한시간
   rounds: 5, // 스피드 퀴즈 라운드 수
   teamMode: false, // 개인전/팀전 (speed, coop)
   fixedDrawer: false, // 스피드 퀴즈: 돌아가며 그리지 않고 한 명이 계속 그림
@@ -71,11 +72,12 @@ export function wordMatches(word, guess) {
   return Object.values(word).some((v) => normalizeText(v) === g);
 }
 
-// 비밀 키워드가 있는 모드에서는 키워드 자체가 프롬프트에 포함되면 반려
+// 현재 제시어의 다국어 표현(또는 사용자 제시 문장)이 프롬프트에 포함되면 반려
 export function promptViolation(room, prompt, keyword) {
   const p = normalizeText(prompt);
   if (keyword) {
-    for (const raw of Object.values(keyword)) {
+    const variants = typeof keyword === 'string' ? [keyword] : Object.values(keyword);
+    for (const raw of variants) {
       const v = normalizeText(raw);
       if (v && p.includes(v)) return raw;
     }
@@ -221,6 +223,7 @@ export function configRoom(room, playerId, patch: Record<string, any> = {}) {
     if (o.difficulty !== undefined && DIFFICULTIES.includes(o.difficulty)) opt.difficulty = o.difficulty;
     if (o.textSeconds !== undefined) opt.textSeconds = clampInt(o.textSeconds, 15, 300, opt.textSeconds);
     if (o.imageSeconds !== undefined) opt.imageSeconds = clampInt(o.imageSeconds, 30, 600, opt.imageSeconds);
+    if (o.speedSeconds !== undefined) opt.speedSeconds = clampInt(o.speedSeconds, 30, 600, opt.speedSeconds);
     if (o.rounds !== undefined) opt.rounds = clampInt(o.rounds, 1, 20, opt.rounds);
     if (o.teamMode !== undefined) opt.teamMode = !!o.teamMode;
     if (o.fixedDrawer !== undefined) opt.fixedDrawer = !!o.fixedDrawer;
@@ -321,7 +324,8 @@ function initClassic(room) {
   };
 }
 
-const CHAOS_REVEAL_MS = 4000;
+// 캐릭터 룰렛(약 3초) 후 최종 효과 설명을 약 5초간 노출한다.
+const CHAOS_REVEAL_MS = 8000;
 
 function initChaos(room) {
   const game: Record<string, any> = initClassic(room);
@@ -351,10 +355,11 @@ function configureChaosRound(room, g, startsAt = now()) {
   if (g.chaosCharacterId === 'null' && g.round > 0) {
     for (const player of room.players) g.activeChaosByPlayer.set(player.id, randomActiveChaosCharacterId());
   }
-  g.playerEndsAt = new Map(
-    room.players.map((player) => [player.id, startsAt + classicRoundSeconds(room, g, player.id) * 1000]),
+  const playerEndsAt = new Map<string, number>(
+    room.players.map((player) => [player.id, startsAt + classicRoundSeconds(room, g, player.id) * 1000] as [string, number]),
   );
-  g.endsAt = Math.max(...Array.from(g.playerEndsAt.values()));
+  g.playerEndsAt = playerEndsAt;
+  g.endsAt = Math.max(...playerEndsAt.values());
 }
 
 export function classicRoundType(round) {
@@ -448,7 +453,7 @@ function speedNewRound(room, g) {
   g.image = null;
   g.guesses = [];
   g.winnerId = null;
-  g.endsAt = now() + room.options.imageSeconds * 1000;
+  g.endsAt = now() + room.options.speedSeconds * 1000;
 }
 
 function speedFinishRound(room, g, winnerId) {
@@ -477,15 +482,7 @@ function speedFinishRound(room, g, winnerId) {
 
 function advSpeed(room) {
   const g = room.game;
-  if (g.phase === 'draw' && now() >= g.endsAt) {
-    if (g.draftUrl) {
-      g.image = g.draftUrl;
-      g.phase = 'guess';
-      g.endsAt = now() + room.options.textSeconds * 1000;
-    } else {
-      speedFinishRound(room, g, null);
-    }
-  } else if (g.phase === 'guess' && now() >= g.endsAt) {
+  if ((g.phase === 'draw' || g.phase === 'guess') && now() >= g.endsAt) {
     speedFinishRound(room, g, null);
   } else if (g.phase === 'reveal' && now() >= g.endsAt) {
     g.round += 1;
@@ -519,7 +516,7 @@ function speedTeamNewRound(room, g) {
   g.winnerTeam = null;
   g.winnerId = null;
   g.phase = 'play'; // play | reveal
-  g.endsAt = now() + (room.options.imageSeconds + room.options.textSeconds) * 1000;
+  g.endsAt = now() + room.options.speedSeconds * 1000;
 }
 
 function speedTeamFinishRound(room, g, winnerId) {
@@ -683,7 +680,13 @@ function advImposter(room) {
   }
   if (g.phase === 'turns' && (!present(room, g.order[g.turn]) || now() >= g.endsAt)) {
     const pid = g.order[g.turn];
-    g.entries.push({ playerId: pid, nickname: nicknameOf(room, pid), url: null, prompt: null, skipped: true });
+    g.entries.push({
+      playerId: pid,
+      nickname: nicknameOf(room, pid),
+      url: g.draftUrl ?? null,
+      prompt: g.draftPrompt ?? null,
+      skipped: !g.draftUrl,
+    });
     imposterNextTurn(room, g);
   } else if (g.phase === 'vote' && (now() >= g.endsAt || imposterVoteComplete(room, g))) {
     imposterCloseVote(room, g);
@@ -738,7 +741,9 @@ export function canGenerate(room, playerId) {
       if (room.mode === 'chaos' && activeChaosCharacterId(room, playerId) === 'retry' && (g.submissions.get(playerId)?.generateCount ?? 0) >= 3) {
         return { error: 'errChaosGenerateLimit' };
       }
-      return { keyword: null };
+      const chain = g.chains[classicChainIndex(room, playerId)] ?? [];
+      const sourceText = chain[chain.length - 1]?.text ?? null;
+      return { keyword: sourceText };
     }
     case 'speed': {
       if (g.phase !== 'draw' || g.drawerId !== playerId) return { error: 'errNotYourTurn' };
@@ -753,12 +758,12 @@ export function canGenerate(room, playerId) {
     }
     case 'coop': {
       if (g.subs.get(playerId)?.submitted) return { error: 'errAlreadySubmitted' };
-      return { keyword: null };
+      return { keyword: g.theme };
     }
     case 'imposter': {
       if (g.phase !== 'turns' || g.order[g.turn] !== playerId) return { error: 'errNotYourTurn' };
-      // 임포스터가 아닌 사람은 키워드를 프롬프트에 쓸 수 없다
-      return { keyword: playerId === g.imposterId ? null : g.keyword };
+      // 임포스터도 우연히 정답을 입력하면 생성 프롬프트로는 사용할 수 없다.
+      return { keyword: g.keyword };
     }
     default:
       return { error: 'errBadMode' };
@@ -828,7 +833,6 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
       if (!g.draftUrl) return { error: 'errGenerateFirst' };
       g.image = g.draftUrl;
       g.phase = 'guess';
-      g.endsAt = now() + room.options.textSeconds * 1000;
       return {};
     }
     case 'speed_team': {
@@ -886,7 +890,7 @@ export function guessAction(room, playerId, text) {
 
   switch (room.mode) {
     case 'speed': {
-      if (g.phase !== 'guess') return { error: 'errNotGuessPhase' };
+      if (g.phase !== 'draw' && g.phase !== 'guess') return { error: 'errNotGuessPhase' };
       if (g.drawerId === playerId) return { error: 'errDrawerCannotGuess' };
       const correct = wordMatches(g.keyword, t);
       g.guesses.push({ nickname: player.nickname, team: player.team, text: t, correct });
@@ -897,7 +901,6 @@ export function guessAction(room, playerId, text) {
       if (g.phase !== 'play') return { error: 'errNotGuessPhase' };
       const team = player.team;
       if (g.drawers[team] === playerId) return { error: 'errDrawerCannotGuess' };
-      if (!g.teams[team].image) return { error: 'errWaitTeamImage' };
       const correct = wordMatches(g.keyword, t);
       g.guesses.push({ nickname: player.nickname, team, text: t, correct });
       if (correct) speedTeamFinishRound(room, g, playerId);

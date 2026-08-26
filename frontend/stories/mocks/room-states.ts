@@ -31,6 +31,7 @@ export const roomState: RoomState = {
     difficulty: 'normal',
     textSeconds: 45,
     imageSeconds: 90,
+    speedSeconds: 120,
     rounds: 5,
     teamMode: false,
     fixedDrawer: false,

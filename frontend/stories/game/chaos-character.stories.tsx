@@ -25,4 +25,5 @@ export const Retry: Story = { args: { character: 'retry' } };
 export const Timeout: Story = { args: { character: 'timeout' } };
 export const Null: Story = { args: { character: 'null' } };
 export const SmallActive: Story = { args: { character: 'glitch', size: 'small', state: 'active' } };
+export const SmallWithDescription: Story = { args: { character: 'timeout', size: 'small', state: 'active', showDescription: true } };
 export const MediumThinking: Story = { args: { character: 'pixel', size: 'medium', state: 'thinking' } };

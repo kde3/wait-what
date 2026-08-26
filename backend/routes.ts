@@ -127,23 +127,53 @@ apiRouter.post('/rooms/:code/generate', async (req, res) => {
   const banned = promptViolation(room, prompt, check.keyword);
   if (banned) return res.status(400).json({ error: 'errBannedWord', word: banned });
 
-  let url;
+  const generationContext = {
+    game: room.game,
+    mode: room.mode,
+    phase: room.game.phase,
+    round: room.game.round,
+    turn: room.game.turn,
+    endsAt: room.game.endsAt,
+  };
+
+  let png;
   if (aiEnabled()) {
     try {
-      const png = await generateImage(prompt, room.options.difficulty);
-      url = putImage(room.code, png);
+      png = await generateImage(prompt, room.options.difficulty);
     } catch (error) {
       const code = error instanceof AiError ? error.code : 'errAiFailed';
       return res.status(502).json({ error: code });
     }
+  }
+
+  if (!getRoom(room.code)) return res.status(404).json({ error: 'errRoomNotFound' });
+  advance(room);
+  const contextChanged =
+    room.game !== generationContext.game ||
+    room.mode !== generationContext.mode ||
+    room.game.phase !== generationContext.phase ||
+    room.game.round !== generationContext.round ||
+    room.game.turn !== generationContext.turn ||
+    room.game.endsAt !== generationContext.endsAt;
+  const stillAllowed = canGenerate(room, playerId);
+  if (contextChanged || stillAllowed.error) {
+    return res.status(409).json({ error: stillAllowed.error ?? 'errNotDrawPhase' });
+  }
+
+  let url;
+  if (png) {
+    url = putImage(room.code, png);
   } else {
     let hash = 7;
     for (const char of prompt) hash = (hash * 31 + char.charCodeAt(0)) % 99991;
     url = `/api/mock-image?s=${hash}&n=${Math.floor(Math.random() * 1e6)}`;
   }
 
-  if (!getRoom(room.code)) return res.status(404).json({ error: 'errRoomNotFound' });
   applyDraft(room, playerId, prompt, url);
+  if (room.mode === 'speed' || room.mode === 'speed_team') {
+    const submitted = submitAction(room, playerId);
+    if (submitted.error) return res.status(409).json({ error: submitted.error });
+  }
   touch(req.params.code);
   res.json({ url });
 });

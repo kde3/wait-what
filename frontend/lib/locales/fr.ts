@@ -109,6 +109,7 @@ export const dict = {
   difficultyEasy: 'Facile',
   optTextSeconds: 'Temps texte/devinette',
   optImageSeconds: 'Temps de dessin',
+  optSpeedSeconds: 'Temps de génération et de devinette',
   optRounds: 'Manches',
   optBannedWords: 'Pénalité : mots interdits',
   bannedWordsPlaceholder: 'Séparés par des virgules (ex. mignon, cute)',

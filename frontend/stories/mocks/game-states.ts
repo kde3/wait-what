@@ -53,13 +53,13 @@ export const chaosResultState: RoomState = {
   status: 'finished',
   results: {
     kind: 'chaos',
-    chaosCharacterId: 'autocorrect',
+    chaosCharacterId: 'glitch',
     albums: [
       {
         owner: '익명 방장',
         entries: [
           { type: 'text', author: '익명 방장', text: '우주복을 입은 고양이가 라면을 먹는 모습' },
-          { type: 'image', author: '그림 고양이', url: MOCK_IMAGE, prompt: '우주 고양이와 라면 그릇' },
+          { type: 'image', author: '그림 고양이', url: MOCK_IMAGE, prompt: '우주 고양이와 라면 그릇', chaosCharacterId: 'glitch' },
           { type: 'text', author: '초록 로봇', text: '달에서 야식을 먹는 고양이' },
         ],
       },

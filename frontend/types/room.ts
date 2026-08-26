@@ -16,6 +16,7 @@ export interface RoomOptions {
   difficulty: Difficulty;
   textSeconds: number;
   imageSeconds: number;
+  speedSeconds: number;
   rounds: number;
   teamMode: boolean;
   fixedDrawer: boolean;
