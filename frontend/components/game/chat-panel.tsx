@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { twMerge } from 'tailwind-merge';
 import { useI18n } from '../i18n-provider';
 import { Input } from '@heroui/react';
 import { Button } from '../ui/button';
@@ -15,10 +16,12 @@ export interface ChatMessage {
 interface ChatPanelProps {
   messages?: ChatMessage[];
   busy?: boolean;
+  className?: string;
+  feedClassName?: string;
   onSend: (text: string) => void | Promise<void>;
 }
 
-export function ChatPanel({ messages = [], busy = false, onSend }: ChatPanelProps) {
+export function ChatPanel({ messages = [], busy = false, className, feedClassName, onSend }: ChatPanelProps) {
   const { t } = useI18n();
   const [text, setText] = useState('');
 
@@ -30,9 +33,9 @@ export function ChatPanel({ messages = [], busy = false, onSend }: ChatPanelProp
   }
 
   return (
-    <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+    <div className={twMerge('rounded-xl border bg-surface p-5 text-foreground shadow-sm', className)}>
       <h2>{t('chatTitle')}</h2>
-      <ScrollFeed bottomKey={messages.length} className="mt-2">
+      <ScrollFeed bottomKey={messages.length} className={twMerge('mt-2', feedClassName)}>
         {messages.length === 0 ? (
           <p className="text-sm text-muted">{t('chatEmpty')}</p>
         ) : (

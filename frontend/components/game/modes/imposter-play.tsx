@@ -83,69 +83,79 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
         </div>
       )}
 
-      {g.phase === 'turns' && g.youAreCurrent && (
-        <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-          <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
-          <PromptPanel
-            prompt={prompt}
-            setPrompt={setPrompt}
-            imageUrl={imageUrl}
-            generating={generating}
-            busy={busy}
-            onGenerate={() => generate(prompt)}
-            onCancelGenerate={cancelGenerate}
-            onSubmit={async () => {
-              if (await api('submit', { playerId })) sfx.submit();
-            }}
-          />
-          {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-        </div>
-      )}
-
-      {g.phase === 'vote' && (
-        <ImposterVotePanel
-          candidates={g.candidates}
-          yourVote={g.yourVote}
-          votedCount={g.votedCount}
-          voterTotal={g.voterTotal}
-          busy={busy}
-          onVote={sendVote}
-        />
-      )}
-
-      {g.phase === 'guess' && (
-        <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-          <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterCaughtTitle')}</h2>
-          <p className="text-sm text-muted">
-            {t('imposterAccusedLabel')}: <b>{g.accused}</b>
-          </p>
-          {g.youAreImposter ? (
-            <>
-              <p className="mt-3 font-medium">{t('imposterGuessTitle')}</p>
-              <Input
-                type="text"
-                maxLength={100}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="none"
-                spellCheck={false}
-                placeholder={t('guessInputPlaceholder')}
-                value={guessText}
-                onChange={(e) => setGuessText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendGuess()}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+        <div className="space-y-4 lg:order-2">
+          {g.phase === 'turns' && g.youAreCurrent && (
+            <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+              <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
+              <PromptPanel
+                prompt={prompt}
+                setPrompt={setPrompt}
+                imageUrl={imageUrl}
+                generating={generating}
+                busy={busy}
+                onGenerate={() => generate(prompt)}
+                onCancelGenerate={cancelGenerate}
+                onSubmit={async () => {
+                  if (await api('submit', { playerId })) sfx.submit();
+                }}
               />
-              <Button className="w-full" onClick={sendGuess} isDisabled={busy || !guessText.trim()}>
-                {t('guessBtn')}
-              </Button>
               {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-            </>
-          ) : (
-            <StatusBanner className="mt-3">{t('imposterGuessWait')}</StatusBanner>
+            </div>
+          )}
+
+          {g.phase === 'vote' && (
+            <ImposterVotePanel
+              candidates={g.candidates}
+              yourVote={g.yourVote}
+              votedCount={g.votedCount}
+              voterTotal={g.voterTotal}
+              busy={busy}
+              onVote={sendVote}
+            />
+          )}
+
+          {g.phase === 'guess' && (
+            <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+              <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterCaughtTitle')}</h2>
+              <p className="text-sm text-muted">
+                {t('imposterAccusedLabel')}: <b>{g.accused}</b>
+              </p>
+              {g.youAreImposter ? (
+                <>
+                  <p className="mt-3 font-medium">{t('imposterGuessTitle')}</p>
+                  <Input
+                    type="text"
+                    maxLength={100}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder={t('guessInputPlaceholder')}
+                    value={guessText}
+                    onChange={(e) => setGuessText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendGuess()}
+                  />
+                  <Button className="w-full" onClick={sendGuess} isDisabled={busy || !guessText.trim()}>
+                    {t('guessBtn')}
+                  </Button>
+                  {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
+                </>
+              ) : (
+                <StatusBanner className="mt-3">{t('imposterGuessWait')}</StatusBanner>
+              )}
+            </div>
           )}
         </div>
-      )}
 
-      <ChatPanel messages={g.chat} busy={busy} onSend={sendChat} />
+        <ChatPanel
+          messages={g.chat}
+          busy={busy}
+          onSend={sendChat}
+          className="lg:order-1 lg:sticky lg:top-[4.5rem]"
+          feedClassName="lg:max-h-[calc(100vh-15rem)]"
+        />
+      </div>
     </>
   );
 }
