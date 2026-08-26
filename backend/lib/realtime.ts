@@ -104,6 +104,8 @@ function stateKey(room) {
       g.turnIndex,
       g.guesses?.length,
       g.entries?.length,
+      g.votes?.size,
+      g.caught,
       g.image ? 1 : 0,
       g.draftUrl ? 1 : 0,
       g.winnerId,

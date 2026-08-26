@@ -22,6 +22,7 @@ import {
   stayInRoom,
   submitAction,
   unsubmitAction,
+  voteAction,
   wordMatches,
 } from '../lib/store';
 
@@ -545,6 +546,19 @@ describe('imposter', () => {
     return pid;
   }
 
+  function playAllTurns(room) {
+    while (room.game.phase === 'turns') playTurn(room);
+  }
+
+  function voteAllAgainst(room, targetId) {
+    const g = room.game;
+    const targetIndex = g.order.indexOf(targetId);
+    const otherIndex = g.order.findIndex((id) => id !== targetId && room.players.some((p) => p.id === id));
+    for (const p of [...room.players]) {
+      voteAction(room, p.id, p.id === targetId ? otherIndex : targetIndex);
+    }
+  }
+
   it('자기 차례가 아니면 errNotYourTurn', () => {
     const { room } = imposterRoom();
     const g = room.game;
@@ -563,7 +577,7 @@ describe('imposter', () => {
       else expect(check.keyword).toBe(g.keyword);
       playTurn(room);
     }
-    expect(g.phase).toBe('guess');
+    expect(g.phase).toBe('vote');
     expect(g.entries).toHaveLength(3);
     expect(g.entries.every((e) => !e.skipped)).toBe(true);
   });
@@ -586,10 +600,95 @@ describe('imposter', () => {
     expect(g.entries[0]).toMatchObject({ playerId: first, url: null, skipped: true });
   });
 
-  it('전원 차례가 끝나면 guess phase, 임포스터만 guess할 수 있다', () => {
+  it('전원 차례가 끝나면 vote phase가 되고 아직 추리할 수 없다', () => {
     const { room } = imposterRoom();
     const g = room.game;
-    while (g.phase === 'turns') playTurn(room);
+    playAllTurns(room);
+    expect(g.phase).toBe('vote');
+    expect(g.votes.size).toBe(0);
+    expect(guessAction(room, g.imposterId, g.keyword.ko).error).toBe('errNotGuessPhase');
+  });
+
+  it('자기 자신·중복·범위 밖 투표는 거부된다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    const voter = g.order[0];
+    expect(voteAction(room, voter, 0).error).toBe('errCannotVoteSelf');
+    expect(voteAction(room, voter, 99).error).toBe('errBadVoteTarget');
+    expect(voteAction(room, voter, -1).error).toBe('errBadVoteTarget');
+    expect(voteAction(room, voter, 1)).toEqual({});
+    expect(voteAction(room, voter, 2).error).toBe('errAlreadyVoted');
+  });
+
+  it('일부만 투표하면 집계되지 않는다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    expect(voteAction(room, g.order[0], 1)).toEqual({});
+    expect(g.phase).toBe('vote');
+    expect(room.status).toBe('playing');
+  });
+
+  it('임포스터가 아닌 사람이 지목되면 임포스터 승리로 끝난다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    const innocent = room.players.find((p) => p.id !== g.imposterId).id;
+    voteAllAgainst(room, innocent);
+    expect(g.accusedId).toBe(innocent);
+    expect(g.caught).toBe(false);
+    expect(room.status).toBe('finished');
+    expect(g.won).toBe(true);
+    expect(g.guess).toBeNull();
+  });
+
+  it('표가 갈리면 아무도 지목되지 않아 임포스터가 승리한다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    voteAction(room, g.order[0], 1);
+    voteAction(room, g.order[1], 2);
+    voteAction(room, g.order[2], 0);
+    expect(g.accusedId).toBeNull();
+    expect(g.caught).toBe(false);
+    expect(room.status).toBe('finished');
+    expect(g.won).toBe(true);
+  });
+
+  it('아무도 투표하지 않고 시간이 끝나면 임포스터가 승리한다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    timeout(room);
+    expect(g.caught).toBe(false);
+    expect(room.status).toBe('finished');
+    expect(g.won).toBe(true);
+  });
+
+  it('중퇴자에게는 투표할 수 없다', () => {
+    const { room, ids } = makeRoom(4);
+    configRoom(room, ids[0], { mode: 'imposter' });
+    startGame(room, ids[0]);
+    const g = room.game;
+    playAllTurns(room);
+    const leaver = room.players.find((p) => p.id !== g.imposterId).id;
+    const leaverIndex = g.order.indexOf(leaver);
+    removePlayer(room, leaver);
+    advance(room);
+    const voter = room.players.find((p) => p.id !== g.imposterId).id;
+    expect(voteAction(room, voter, leaverIndex).error).toBe('errBadVoteTarget');
+  });
+
+  it('임포스터가 지목되면 guess phase로 넘어가고 임포스터만 추리할 수 있다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    voteAllAgainst(room, g.imposterId);
+    expect(g.accusedId).toBe(g.imposterId);
+    expect(g.caught).toBe(true);
+    expect(g.phase).toBe('guess');
+    expect(room.status).toBe('playing');
     const citizen = room.players.find((p) => p.id !== g.imposterId).id;
     expect(guessAction(room, citizen, '고양이').error).toBe('errImposterOnly');
     expect(guessAction(room, g.imposterId, g.keyword.en)).toEqual({ correct: true });
@@ -600,14 +699,27 @@ describe('imposter', () => {
   it('임포스터가 다른 언어로 맞혀도 정답으로 인정된다', () => {
     const { room } = imposterRoom();
     const g = room.game;
-    while (g.phase === 'turns') playTurn(room);
+    playAllTurns(room);
+    voteAllAgainst(room, g.imposterId);
     expect(guessAction(room, g.imposterId, ` ${g.keyword.ja}! `)).toEqual({ correct: true });
   });
 
-  it('guess 타임아웃이면 임포스터 패배로 끝난다', () => {
+  it('지목된 임포스터가 키워드를 못 맞히면 크루 승리', () => {
     const { room } = imposterRoom();
     const g = room.game;
-    while (g.phase === 'turns') playTurn(room);
+    playAllTurns(room);
+    voteAllAgainst(room, g.imposterId);
+    expect(guessAction(room, g.imposterId, '전혀 다른 오답')).toEqual({ correct: false });
+    expect(room.status).toBe('finished');
+    expect(g.won).toBe(false);
+  });
+
+  it('지목 후 추리 시간이 끝나면 크루 승리로 끝난다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    playAllTurns(room);
+    voteAllAgainst(room, g.imposterId);
+    expect(g.phase).toBe('guess');
     timeout(room);
     expect(room.status).toBe('finished');
     expect(g.won).toBe(false);

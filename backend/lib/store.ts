@@ -539,11 +539,23 @@ function initImposter(room) {
     entries: [],
     draftUrl: null,
     draftPrompt: null,
-    phase: 'turns', // turns | guess | done
+    phase: 'turns', // turns | vote | guess | done
     endsAt: now() + room.options.imageSeconds * 1000,
+    votes: new Map(),
+    accusedId: null,
+    caught: null,
     guess: null,
     won: null,
   };
+}
+
+export function imposterVoters(room, g) {
+  return room.players.filter((p) => g.order.includes(p.id));
+}
+
+function imposterVoteComplete(room, g) {
+  const voters = imposterVoters(room, g);
+  return voters.length > 0 && voters.every((p) => g.votes.has(p.id));
 }
 
 function imposterNextTurn(room, g) {
@@ -551,11 +563,39 @@ function imposterNextTurn(room, g) {
   g.draftUrl = null;
   g.draftPrompt = null;
   if (g.turn >= g.order.length) {
-    g.phase = 'guess';
+    g.phase = 'vote';
     g.endsAt = now() + room.options.textSeconds * 1000;
   } else {
     g.endsAt = now() + room.options.imageSeconds * 1000;
   }
+}
+
+function imposterTally(room, g) {
+  const counts = new Map();
+  for (const [voterId, targetId] of g.votes) {
+    if (!present(room, voterId) || !present(room, targetId)) continue;
+    counts.set(targetId, (counts.get(targetId) ?? 0) + 1);
+  }
+  let best = null;
+  let tied = false;
+  for (const [targetId, count] of counts) {
+    if (!best || count > best.count) {
+      best = { targetId, count };
+      tied = false;
+    } else if (count === best.count) {
+      tied = true;
+    }
+  }
+  return tied ? null : best?.targetId ?? null;
+}
+
+function imposterCloseVote(room, g) {
+  const accusedId = imposterTally(room, g);
+  g.accusedId = accusedId;
+  g.caught = !!accusedId && accusedId === g.imposterId;
+  if (!g.caught) return imposterFinish(room, g, null, true);
+  g.phase = 'guess';
+  g.endsAt = now() + room.options.textSeconds * 1000;
 }
 
 function imposterFinish(room, g, guessText, forcedWon?) {
@@ -575,9 +615,28 @@ function advImposter(room) {
     const pid = g.order[g.turn];
     g.entries.push({ playerId: pid, nickname: nicknameOf(room, pid), url: null, prompt: null, skipped: true });
     imposterNextTurn(room, g);
+  } else if (g.phase === 'vote' && (now() >= g.endsAt || imposterVoteComplete(room, g))) {
+    imposterCloseVote(room, g);
   } else if (g.phase === 'guess' && now() >= g.endsAt) {
     imposterFinish(room, g, null);
   }
+}
+
+export function voteAction(room, playerId, targetIndex) {
+  if (room.status !== 'playing') return { error: 'errNotPlaying' };
+  if (room.mode !== 'imposter') return { error: 'errBadMode' };
+  const g = room.game;
+  if (!room.players.some((p) => p.id === playerId)) return { error: 'errNotPlayer' };
+  if (g.phase !== 'vote') return { error: 'errNotVotePhase' };
+  if (g.votes.has(playerId)) return { error: 'errAlreadyVoted' };
+  const index = Number(targetIndex);
+  if (!Number.isInteger(index) || index < 0 || index >= g.order.length) return { error: 'errBadVoteTarget' };
+  const targetId = g.order[index];
+  if (targetId === playerId) return { error: 'errCannotVoteSelf' };
+  if (!present(room, targetId)) return { error: 'errBadVoteTarget' };
+  g.votes.set(playerId, targetId);
+  if (imposterVoteComplete(room, g)) imposterCloseVote(room, g);
+  return {};
 }
 
 // ── 행동: 생성(드래프트) / 제출 / 정답 시도 ──────────────────

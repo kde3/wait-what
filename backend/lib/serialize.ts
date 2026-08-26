@@ -1,5 +1,5 @@
 // 방 상태 직렬화 — HTTP 폴링 라우트와 웹소켓 브로드캐스트가 함께 쓴다.
-import { isTeamGame, classicRoundType, classicChainIndex, nicknameOf, MAX_PLAYERS } from './store';
+import { isTeamGame, classicRoundType, classicChainIndex, nicknameOf, imposterVoters, MAX_PLAYERS } from './store';
 
 const remainSec = (endsAt) => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 
@@ -132,6 +132,8 @@ function buildGameView(room, you) {
     case 'imposter': {
       const youAreImposter = g.imposterId === you.id;
       const curId = g.phase === 'turns' ? g.order[g.turn] : null;
+      const voters = imposterVoters(room, g);
+      const yourVoteId = g.votes.get(you.id) ?? null;
       return {
         kind: 'imposter',
         phase: g.phase,
@@ -144,6 +146,15 @@ function buildGameView(room, you) {
         youAreCurrent: curId === you.id,
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, skipped: e.skipped })),
         draft: curId === you.id ? { prompt: g.draftPrompt, url: g.draftUrl } : null,
+        candidates: g.order.map((id) => ({
+          nickname: nicknameOf(room, id),
+          left: !room.players.some((p) => p.id === id),
+          you: id === you.id,
+        })),
+        yourVote: yourVoteId ? g.order.indexOf(yourVoteId) : null,
+        votedCount: voters.filter((p) => g.votes.has(p.id)).length,
+        voterTotal: voters.length,
+        accused: g.accusedId ? nicknameOf(room, g.accusedId) : null,
       };
     }
   }
@@ -202,6 +213,12 @@ function buildResults(room, you) {
         imposter: nicknameOf(room, g.imposterId),
         guess: g.guess,
         won: g.won,
+        caught: !!g.caught,
+        accused: g.accusedId ? nicknameOf(room, g.accusedId) : null,
+        votes: [...g.votes].map(([voterId, targetId]) => ({
+          nickname: nicknameOf(room, voterId),
+          target: nicknameOf(room, targetId),
+        })),
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, prompt: e.prompt, skipped: e.skipped })),
       };
   }
