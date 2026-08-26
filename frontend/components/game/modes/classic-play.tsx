@@ -13,6 +13,8 @@ import { TimerBar } from '../timer-bar';
 import { Input, Surface } from '@heroui/react';
 import { Button } from '../../ui/button';
 import { apiUrl } from '../../../lib/backend-url';
+import type { ChaosCharacterId } from '../../../lib/chaos';
+import { ChaosAffectedImage } from '../chaos-affected-image';
 // ── 클래식 ──────────────────────────────────────────────
 
 function phraseSuggestion(t) {
@@ -36,7 +38,7 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
   const suggestedPhrase = phraseSuggestion(t);
   const submittedCount = g.players.filter((player) => player.submitted).length;
 
-  const totalSecs = g.task.kind === 'draw' ? state.options.imageSeconds : state.options.textSeconds;
+  const totalSecs = g.roundSeconds ?? (g.task.kind === 'draw' ? state.options.imageSeconds : state.options.textSeconds);
 
   async function submit() {
     const body: { playerId: string; text?: string } = { playerId };
@@ -96,6 +98,11 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
                 <p className="font-medium text-foreground">“{g.task.sourceText || t('emptyValue')}”</p>
               </Surface>
               <p className="text-sm text-muted">{t('drawHint')}</p>
+              {g.kind === 'chaos' && g.activeChaosCharacterId === 'retry' && (
+                <p className="text-sm font-medium tabular-nums text-muted">
+                  {t('chaosGenerateCount')} {g.generateCount} / 3
+                </p>
+              )}
               <PromptPanel
                 prompt={prompt}
                 setPrompt={setPrompt}
@@ -115,7 +122,11 @@ export function ClassicPlay({ state, playerId, api, busy, error }) {
             <div className="space-y-4">
               <h2>{t('guessTitle')}</h2>
               {g.task.sourceImage ? (
-                <img className="w-full rounded-lg border object-cover" src={apiUrl(g.task.sourceImage)} alt="AI" />
+                g.kind === 'chaos' ? (
+                  <ChaosAffectedImage src={g.task.sourceImage} characterId={g.task.chaosCharacterId as ChaosCharacterId} />
+                ) : (
+                  <img className="w-full rounded-lg border object-cover" src={apiUrl(g.task.sourceImage)} alt="AI" />
+                )
               ) : (
                 <p className="text-center text-sm text-muted">{t('guessHint')}</p>
               )}

@@ -9,8 +9,9 @@ import { TeamBadge } from './team-badge';
 import { ShareButton } from './share-button';
 import { Button } from '../ui/button';
 import { apiUrl } from '../../lib/backend-url';
-import type { ChaosCharacterId } from '../../lib/chaos';
+import { CHAOS_CHARACTER_BY_ID, type ChaosCharacterId } from '../../lib/chaos';
 import { ChaosCharacter } from './chaos-character';
+import { ChaosAffectedImage } from './chaos-affected-image';
 
 export default function GameResults({ state, playerId, api, busy, onLeave }: any) {
   const { t, lang } = useI18n();
@@ -65,7 +66,17 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
                   <div className={i === 0 ? 'rounded-lg border border-accent/30 bg-accent/5 p-4' : 'rounded-lg bg-surface-secondary p-4'}>{item.text || t('emptyValue')}</div>
                 ) : item.url ? (
                   <>
-                    <img className="w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt="AI" />
+                    {r.kind === 'chaos' ? (
+                      <ChaosAffectedImage src={item.url} characterId={item.chaosCharacterId as ChaosCharacterId} />
+                    ) : (
+                      <img className="w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt="AI" />
+                    )}
+                    {r.kind === 'chaos' && item.chaosCharacterId && (
+                      <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-1 font-mono text-xs font-bold text-danger">
+                        {r.chaosCharacterId === 'null' ? 'NULL → ' : '⚠ '}
+                        {t(CHAOS_CHARACTER_BY_ID[item.chaosCharacterId as ChaosCharacterId].nameKey)}
+                      </span>
+                    )}
                     {item.prompt && (
                       <p className="text-sm text-muted">
                         {t('promptLabel')}: {item.prompt}

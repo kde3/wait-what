@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { WORDS } from './words';
 import { LANGS } from './langs';
 import { dropRoomImages } from './images';
-import { randomChaosCharacterId } from './chaos';
+import { randomActiveChaosCharacterId, randomChaosCharacterId } from './chaos';
 
 const rooms = globalThis.__gpRooms ?? (globalThis.__gpRooms = new Map());
 
@@ -320,10 +320,35 @@ const CHAOS_REVEAL_MS = 4000;
 function initChaos(room) {
   const game: Record<string, any> = initClassic(room);
   game.chaosCharacterId = randomChaosCharacterId();
+  game.activeChaosByPlayer = new Map();
+  game.playerEndsAt = new Map();
   game.phase = 'reveal';
   game.revealEndsAt = now() + CHAOS_REVEAL_MS;
-  game.endsAt += CHAOS_REVEAL_MS;
+  configureChaosRound(room, game, game.revealEndsAt);
   return game;
+}
+
+function activeChaosCharacterId(room, playerId, game = room.game) {
+  if (room.mode !== 'chaos') return null;
+  return game.chaosCharacterId === 'null'
+    ? (game.activeChaosByPlayer?.get(playerId) ?? null)
+    : game.chaosCharacterId;
+}
+
+function classicRoundSeconds(room, g, playerId?) {
+  const original = classicRoundType(g.round) === 'image' ? room.options.imageSeconds : room.options.textSeconds;
+  return activeChaosCharacterId(room, playerId, g) === 'timeout' ? Math.ceil(original / 2) : original;
+}
+
+function configureChaosRound(room, g, startsAt = now()) {
+  g.activeChaosByPlayer = new Map();
+  if (g.chaosCharacterId === 'null' && g.round > 0) {
+    for (const player of room.players) g.activeChaosByPlayer.set(player.id, randomActiveChaosCharacterId());
+  }
+  g.playerEndsAt = new Map(
+    room.players.map((player) => [player.id, startsAt + classicRoundSeconds(room, g, player.id) * 1000]),
+  );
+  g.endsAt = Math.max(...Array.from(g.playerEndsAt.values()));
 }
 
 export function classicRoundType(round) {
@@ -345,6 +370,14 @@ function advClassic(room) {
     g.phase = 'play';
     return;
   }
+  if (room.mode === 'chaos' && g.chaosCharacterId === 'null') {
+    for (const player of room.players) {
+      if (!g.submissions.get(player.id)?.submitted && now() >= (g.playerEndsAt?.get(player.id) ?? g.endsAt)) {
+        const previous = g.submissions.get(player.id) ?? {};
+        g.submissions.set(player.id, { ...previous, submitted: true, timedOut: true });
+      }
+    }
+  }
   const allSubmitted = room.players.every((p) => g.submissions.get(p.id)?.submitted);
   if (!allSubmitted && now() < g.endsAt) return;
 
@@ -357,7 +390,14 @@ function advClassic(room) {
       const text = submittedText || (g.round === 0 ? DEFAULT_CLASSIC_PHRASE : '');
       g.chains[j].push({ type: 'text', text, authorId: p.id, authorNickname: p.nickname });
     } else {
-      g.chains[j].push({ type: 'image', url: sub.url ?? null, prompt: (sub.prompt ?? '').trim(), authorId: p.id, authorNickname: p.nickname });
+      g.chains[j].push({
+        type: 'image',
+        url: sub.url ?? null,
+        prompt: (sub.prompt ?? '').trim(),
+        authorId: p.id,
+        authorNickname: p.nickname,
+        chaosCharacterId: room.mode === 'chaos' ? activeChaosCharacterId(room, p.id) : null,
+      });
     }
   }
 
@@ -366,8 +406,11 @@ function advClassic(room) {
   } else {
     g.round += 1;
     g.submissions = new Map();
-    const secs = classicRoundType(g.round) === 'image' ? room.options.imageSeconds : room.options.textSeconds;
-    g.endsAt = now() + secs * 1000;
+    if (room.mode === 'chaos') configureChaosRound(room, g);
+    else {
+      const secs = classicRoundType(g.round) === 'image' ? room.options.imageSeconds : room.options.textSeconds;
+      g.endsAt = now() + secs * 1000;
+    }
   }
 }
 
@@ -630,6 +673,9 @@ export function canGenerate(room, playerId) {
       if (g.phase === 'reveal') return { error: 'errChaosReveal' };
       if (classicRoundType(g.round) !== 'image') return { error: 'errNotDrawPhase' };
       if (g.submissions.get(playerId)?.submitted) return { error: 'errAlreadySubmitted' };
+      if (room.mode === 'chaos' && activeChaosCharacterId(room, playerId) === 'retry' && (g.submissions.get(playerId)?.generateCount ?? 0) >= 3) {
+        return { error: 'errChaosGenerateLimit' };
+      }
       return { keyword: null };
     }
     case 'speed': {
@@ -664,7 +710,9 @@ export function applyDraft(room, playerId, prompt, url) {
     case 'classic':
     case 'chaos': {
       const prev = g.submissions.get(playerId) ?? {};
-      g.submissions.set(playerId, { ...prev, prompt, url, submitted: false });
+      const next = { ...prev, prompt, url, submitted: false };
+      if (room.mode === 'chaos') next.generateCount = (prev.generateCount ?? 0) + 1;
+      g.submissions.set(playerId, next);
       break;
     }
     case 'speed':
@@ -700,6 +748,7 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
     case 'classic':
     case 'chaos': {
       if (g.phase === 'reveal') return { error: 'errChaosReveal' };
+      if (room.mode === 'chaos' && g.submissions.get(playerId)?.submitted) return { error: 'errAlreadySubmitted' };
       if (classicRoundType(g.round) === 'text') {
         const t = String(text ?? '').trim().slice(0, 200);
         if (!t) return { error: 'errEmptyText' };
@@ -752,6 +801,7 @@ export function unsubmitAction(room, playerId) {
   const g = room.game;
   if (room.mode === 'classic' || room.mode === 'chaos') {
     const prev = g.submissions.get(playerId) ?? {};
+    if (room.mode === 'chaos' && prev.timedOut) return { error: 'errAlreadySubmitted' };
     g.submissions.set(playerId, { ...prev, submitted: false });
     return {};
   }

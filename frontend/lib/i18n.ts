@@ -9,6 +9,45 @@ import { dict as th } from './locales/th';
 import { dict as id } from './locales/id';
 import { CHAOS_DICTIONARIES } from './chaos-i18n';
 
+const CHAOS_EFFECT_DICTIONARIES: Record<string, Record<string, string>> = {
+  ko: {
+    errChaosGenerateLimit: '이미지 생성 기회를 모두 사용했어요. 최대 3번까지 생성할 수 있습니다.',
+    chaosGenerateCount: '이미지 생성',
+    chaosRandomError: 'RANDOM ERROR',
+    chaosCurrentTurn: '이번 차례',
+    chaos404Description: '이미지의 일부를 찾을 수 없습니다.',
+    chaosGlitchDescription: '이미지 조각이 뒤섞입니다.',
+    chaosPixelDescription: '이미지가 과하게 확대되고 픽셀이 시야를 방해합니다.',
+    chaosPixelSystemMessage: 'TOO CLOSE',
+    chaosFilterDescription: '이미지의 색과 분위기가 왜곡됩니다.',
+    chaosRetryName: 'RETRY',
+    chaosRetryDescription: '이미지를 최대 3번까지만 생성할 수 있습니다.',
+    chaosRetrySystemMessage: 'RETRY LIMIT',
+    chaosTimeoutName: 'TIMEOUT',
+    chaosTimeoutDescription: '제한시간이 절반으로 줄어듭니다.',
+    chaosTimeoutSystemMessage: 'REQUEST TIMED OUT',
+    chaosNullDescription: '매 차례 다른 시스템 오류가 발생합니다.',
+  },
+  en: {
+    errChaosGenerateLimit: 'You used all image generation attempts. Maximum: 3.',
+    chaosGenerateCount: 'Image generation',
+    chaosRandomError: 'RANDOM ERROR',
+    chaosCurrentTurn: 'This turn',
+    chaos404Description: 'Part of the image cannot be found.',
+    chaosGlitchDescription: 'The image tiles are shuffled.',
+    chaosPixelDescription: 'The image is over-zoomed and pixels obstruct the view.',
+    chaosPixelSystemMessage: 'TOO CLOSE',
+    chaosFilterDescription: 'The image colors and mood are distorted.',
+    chaosRetryName: 'RETRY',
+    chaosRetryDescription: 'You can generate an image up to 3 times.',
+    chaosRetrySystemMessage: 'RETRY LIMIT',
+    chaosTimeoutName: 'TIMEOUT',
+    chaosTimeoutDescription: 'The time limit is cut in half.',
+    chaosTimeoutSystemMessage: 'REQUEST TIMED OUT',
+    chaosNullDescription: 'A different system error occurs each turn.',
+  },
+};
+
 export { LANGS, LANG_LABELS, SPEECH_LANGS } from './langs';
 
 const ko = {
@@ -830,7 +869,7 @@ const zh = {
 export const DICTS = Object.fromEntries(
   Object.entries({ ko, en, ja, zh, es, pt, fr, de, ru, vi, th, id }).map(([lang, dict]) => [
     lang,
-    { ...dict, ...CHAOS_DICTIONARIES[lang] },
+    { ...dict, ...CHAOS_DICTIONARIES[lang], ...(CHAOS_EFFECT_DICTIONARIES[lang] ?? {}) },
   ]),
 );
 
