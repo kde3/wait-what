@@ -22,6 +22,7 @@ FLUX.2 Klein 4B로 512×512 파티게임 낙서를 생성하고 OpenAI 비전 �
 | `ENABLE_DEMO` | `1` | `/demo` Gradio UI 활성화 |
 | `GENERATION_BATCH_MAX_SIZE` | `1` | 짧은 요청 버스트를 묶을 최대 GPU 배치 크기(1~4) |
 | `GENERATION_BATCH_WAIT_MS` | `35` | 첫 요청 후 추가 요청을 모으는 최대 시간(ms) |
+| `TORCH_COMPILE_MODE` | `default` | transformer의 `torch.compile` 모드. `off`로 비활성화 가능 |
 
 ## 로컬 실행
 

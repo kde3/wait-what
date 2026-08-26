@@ -88,7 +88,7 @@ GENERATION_BATCH_WAIT_SECONDS = max(
     0.0,
     float(os.getenv("GENERATION_BATCH_WAIT_MS", "35")) / 1000,
 )
-TORCH_COMPILE_MODE = "max-autotune-no-cudagraphs"
+TORCH_COMPILE_MODE = os.getenv("TORCH_COMPILE_MODE", "default").strip()
 REDRAW_REFERENCE_LATENT_SCALE = 0.005
 
 
@@ -322,12 +322,15 @@ def load_pipeline() -> Flux2KleinPipeline:
     pipeline.text_encoder.eval()
     pipeline.set_progress_bar_config(disable=True)
 
-    LOGGER.info("Partially compiling FLUX transformer (%s)...", TORCH_COMPILE_MODE)
-    pipeline.transformer = torch.compile(
-        pipeline.transformer,
-        mode=TORCH_COMPILE_MODE,
-        fullgraph=False,
-    )
+    if TORCH_COMPILE_MODE.lower() not in {"", "0", "none", "off", "false"}:
+        LOGGER.info("Partially compiling FLUX transformer (%s)...", TORCH_COMPILE_MODE)
+        pipeline.transformer = torch.compile(
+            pipeline.transformer,
+            mode=TORCH_COMPILE_MODE,
+            fullgraph=False,
+        )
+    else:
+        LOGGER.info("Torch compilation disabled")
     warmup_pipeline(pipeline)
 
     LOGGER.info(
