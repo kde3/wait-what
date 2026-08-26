@@ -3,6 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { WORDS } from './words';
 import { LANGS } from './langs';
 import { dropRoomImages } from './images';
+import { randomChaosCharacterId } from './chaos';
 
 const rooms = globalThis.__gpRooms ?? (globalThis.__gpRooms = new Map());
 
@@ -12,7 +13,7 @@ const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
 const DEFAULT_CLASSIC_PHRASE = '우주복을 입은 고양이가 라면을 먹는 모습';
 const hashPassword = (password) => createHash('sha256').update(String(password)).digest('hex');
 
-export const MODES = ['classic', 'speed', 'speed_team', 'coop', 'imposter'];
+export const MODES = ['classic', 'speed', 'speed_team', 'coop', 'chaos', 'imposter'];
 
 export const MAX_PLAYERS = 12;
 
@@ -249,7 +250,7 @@ export function startGame(room, playerId) {
   if (room.status !== 'room') return { error: 'errAlreadyStarted' };
 
   const n = room.players.length;
-  const min = { classic: 1, speed: 2, speed_team: 2, coop: 1, imposter: 3 }[room.mode];
+  const min = { classic: 1, speed: 2, speed_team: 2, coop: 1, chaos: 1, imposter: 3 }[room.mode];
   if (n < min) return { error: 'errNotEnoughPlayers' };
 
   if (isTeamGame(room)) {
@@ -264,7 +265,7 @@ export function startGame(room, playerId) {
     p.staying = false;
   }
 
-  const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, coop: initCoop, imposter: initImposter };
+  const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, coop: initCoop, chaos: initChaos, imposter: initImposter };
   room.game = init[room.mode](room);
   room.status = 'playing';
   return {};
@@ -290,7 +291,7 @@ export function backToLobby(room) {
 
 export function advance(room) {
   if (room.status !== 'playing') return;
-  const adv = { classic: advClassic, speed: advSpeed, speed_team: advSpeedTeam, coop: advCoop, imposter: advImposter };
+  const adv = { classic: advClassic, speed: advSpeed, speed_team: advSpeedTeam, coop: advCoop, chaos: advClassic, imposter: advImposter };
   adv[room.mode](room);
 }
 
@@ -310,6 +311,17 @@ function initClassic(room) {
   };
 }
 
+const CHAOS_REVEAL_MS = 4000;
+
+function initChaos(room) {
+  const game: Record<string, any> = initClassic(room);
+  game.chaosCharacterId = randomChaosCharacterId();
+  game.phase = 'reveal';
+  game.revealEndsAt = now() + CHAOS_REVEAL_MS;
+  game.endsAt += CHAOS_REVEAL_MS;
+  return game;
+}
+
 export function classicRoundType(round) {
   return round % 2 === 0 ? 'text' : 'image';
 }
@@ -324,6 +336,11 @@ export function classicChainIndex(room, playerId) {
 
 function advClassic(room) {
   const g = room.game;
+  if (g.phase === 'reveal') {
+    if (now() < g.revealEndsAt) return;
+    g.phase = 'play';
+    return;
+  }
   const allSubmitted = room.players.every((p) => g.submissions.get(p.id)?.submitted);
   if (!allSubmitted && now() < g.endsAt) return;
 
@@ -590,7 +607,9 @@ export function canGenerate(room, playerId) {
   if (!player) return { error: 'errNotPlayer' };
 
   switch (room.mode) {
-    case 'classic': {
+    case 'classic':
+    case 'chaos': {
+      if (g.phase === 'reveal') return { error: 'errChaosReveal' };
       if (classicRoundType(g.round) !== 'image') return { error: 'errNotDrawPhase' };
       if (g.submissions.get(playerId)?.submitted) return { error: 'errAlreadySubmitted' };
       return { keyword: null };
@@ -624,7 +643,8 @@ export function applyDraft(room, playerId, prompt, url) {
   const g = room.game;
   const player = room.players.find((p) => p.id === playerId);
   switch (room.mode) {
-    case 'classic': {
+    case 'classic':
+    case 'chaos': {
       const prev = g.submissions.get(playerId) ?? {};
       g.submissions.set(playerId, { ...prev, prompt, url, submitted: false });
       break;
@@ -659,7 +679,9 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
   if (!player) return { error: 'errNotPlayer' };
 
   switch (room.mode) {
-    case 'classic': {
+    case 'classic':
+    case 'chaos': {
+      if (g.phase === 'reveal') return { error: 'errChaosReveal' };
       if (classicRoundType(g.round) === 'text') {
         const t = String(text ?? '').trim().slice(0, 200);
         if (!t) return { error: 'errEmptyText' };
@@ -710,7 +732,7 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
 export function unsubmitAction(room, playerId) {
   if (room.status !== 'playing') return { error: 'errNotPlaying' };
   const g = room.game;
-  if (room.mode === 'classic') {
+  if (room.mode === 'classic' || room.mode === 'chaos') {
     const prev = g.submissions.get(playerId) ?? {};
     g.submissions.set(playerId, { ...prev, submitted: false });
     return {};

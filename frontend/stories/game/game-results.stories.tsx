@@ -3,6 +3,7 @@ import GameResults from '../../components/game/game-results';
 import { classicResultState } from '../mocks/room-states';
 import {
   coopResultState,
+  chaosResultState,
   imposterResultState,
   speedResultState,
   speedTeamResultState,
@@ -27,4 +28,5 @@ export const Classic: Story = {};
 export const Speed: Story = { args: { state: speedResultState } };
 export const SpeedTeam: Story = { args: { state: speedTeamResultState } };
 export const Coop: Story = { args: { state: coopResultState } };
+export const Chaos: Story = { args: { state: chaosResultState } };
 export const Imposter: Story = { args: { state: imposterResultState } };

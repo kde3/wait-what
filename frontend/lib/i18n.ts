@@ -7,6 +7,7 @@ import { dict as ru } from './locales/ru';
 import { dict as vi } from './locales/vi';
 import { dict as th } from './locales/th';
 import { dict as id } from './locales/id';
+import { CHAOS_DICTIONARIES } from './chaos-i18n';
 
 export { LANGS, LANG_LABELS, SPEECH_LANGS } from './langs';
 
@@ -814,10 +815,15 @@ const zh = {
   minPlayersHint: '该模式需要更多玩家',
 };
 
-export const DICTS = { ko, en, ja, zh, es, pt, fr, de, ru, vi, th, id };
+export const DICTS = Object.fromEntries(
+  Object.entries({ ko, en, ja, zh, es, pt, fr, de, ru, vi, th, id }).map(([lang, dict]) => [
+    lang,
+    { ...dict, ...CHAOS_DICTIONARIES[lang] },
+  ]),
+);
 
 export function translate(lang, key) {
-  return DICTS[lang]?.[key] ?? en[key] ?? ko[key] ?? key;
+  return DICTS[lang]?.[key] ?? DICTS.en[key] ?? DICTS.ko[key] ?? key;
 }
 
 export function aiComment(lang, score) {

@@ -70,6 +70,17 @@ const groups: ColorGroup[] = [
       '--palette-state-success',
     ],
   },
+  {
+    title: '카오스 캐릭터',
+    tokens: [
+      '--palette-chaos-404',
+      '--palette-chaos-glitch',
+      '--palette-chaos-pixel',
+      '--palette-chaos-filter',
+      '--palette-chaos-autocorrect',
+      '--palette-chaos-null',
+    ],
+  },
 ];
 
 const allTokens = groups.flatMap((group) => group.tokens);

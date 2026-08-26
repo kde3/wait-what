@@ -6,6 +6,7 @@ import { useI18n } from '../i18n-provider';
 import { wordText } from '../../lib/words';
 import { sfx } from '../../lib/sound';
 import { Button } from '../ui/button';
+import { CHAOS_CHARACTER_BY_ID } from '../../lib/chaos';
 
 // 게임 결과 공유 텍스트 생성 (키워드/프롬프트 포함)
 function buildShareText(results, t, lang) {
@@ -13,6 +14,10 @@ function buildShareText(results, t, lang) {
   const url = typeof window !== 'undefined' ? window.location.href : '';
   switch (results.kind) {
     case 'classic':
+    case 'chaos':
+      if (results.kind === 'chaos' && results.chaosCharacterId) {
+        lines.push(`⚠️ ${t('chaosResultTitle')}: ${t(CHAOS_CHARACTER_BY_ID[results.chaosCharacterId].nameKey)}`);
+      }
       for (const album of results.albums) {
         lines.push('');
         lines.push(`📖 ${album.owner}${t('albumOf')}`);

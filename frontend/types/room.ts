@@ -1,4 +1,4 @@
-export type GameMode = 'classic' | 'speed' | 'speed_team' | 'coop' | 'imposter';
+export type GameMode = 'classic' | 'speed' | 'speed_team' | 'coop' | 'chaos' | 'imposter';
 export type RoomStatus = 'room' | 'playing' | 'finished';
 
 export interface Player {

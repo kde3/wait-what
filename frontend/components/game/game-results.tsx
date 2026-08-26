@@ -9,6 +9,8 @@ import { ShareButton } from './share-button';
 import { Button } from '../ui/button';
 import { StatusBanner } from '../ui/status-banner';
 import { apiUrl } from '../../lib/backend-url';
+import type { ChaosCharacterId } from '../../lib/chaos';
+import { ChaosCharacter } from './chaos-character';
 
 export default function GameResults({ state, playerId, api, busy, onLeave }: any) {
   const { t, lang } = useI18n();
@@ -19,7 +21,14 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
     <>
       <p className="text-center text-sm text-muted"><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('resultsTitle')}</p>
 
-      {r.kind === 'classic' &&
+      {r.kind === 'chaos' && r.chaosCharacterId && (
+        <div className="rounded-2xl border bg-surface p-6 text-center shadow-sm">
+          <p className="mb-4 font-mono text-xs font-bold tracking-[0.18em] text-danger">{t('chaosResultTitle')}</p>
+          <ChaosCharacter character={r.chaosCharacterId as ChaosCharacterId} size="medium" state="failure" />
+        </div>
+      )}
+
+      {(r.kind === 'classic' || r.kind === 'chaos') &&
         r.albums.map((album, ai) => (
           <div key={ai} className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
             <h2>

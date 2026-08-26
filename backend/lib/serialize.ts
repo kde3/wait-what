@@ -28,7 +28,8 @@ export function buildState(room, playerId) {
 function buildGameView(room, you) {
   const g = room.game;
   switch (room.mode) {
-    case 'classic': {
+    case 'classic':
+    case 'chaos': {
       const type = classicRoundType(g.round);
       const sub = g.submissions.get(you.id) ?? null;
       const j = classicChainIndex(room, you.id);
@@ -39,7 +40,10 @@ function buildGameView(room, you) {
       else if (type === 'image') task = { kind: 'draw', sourceText: prev?.text ?? null };
       else task = { kind: 'guess', sourceImage: prev?.url ?? null };
       return {
-        kind: 'classic',
+        kind: room.mode,
+        phase: g.phase ?? 'play',
+        chaosCharacterId: room.mode === 'chaos' ? g.chaosCharacterId : null,
+        revealRemaining: g.phase === 'reveal' ? remainSec(g.revealEndsAt) : null,
         round: g.round + 1,
         total: g.totalRounds,
         remaining: remainSec(g.endsAt),
@@ -155,8 +159,10 @@ function buildResults(room, you) {
   if (!g) return null;
   switch (room.mode) {
     case 'classic':
+    case 'chaos':
       return {
-        kind: 'classic',
+        kind: room.mode,
+        chaosCharacterId: room.mode === 'chaos' ? g.chaosCharacterId : null,
         albums: g.chains.map((chain, j) => ({
           owner: nicknameOf(room, g.order[j]),
           entries: chain.map((e) => ({ type: e.type, text: e.text, prompt: e.prompt, url: e.url, author: e.authorNickname })),
