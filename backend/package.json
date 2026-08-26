@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "tsx --env-file=.env.dev server.ts",
     "start": "tsx --env-file=.env.prod server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "vitest run test/e2e"
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -16,6 +18,7 @@
     "@types/node": "^26.2.0",
     "@types/ws": "^8.18.1",
     "tsx": "^4.23.12",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   }
 }

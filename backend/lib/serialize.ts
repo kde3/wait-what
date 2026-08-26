@@ -136,7 +136,6 @@ function buildGameView(room, you) {
         kind: 'imposter',
         phase: g.phase,
         remaining: remainSec(g.endsAt),
-        imposter: nicknameOf(room, g.imposterId),
         youAreImposter,
         keyword: youAreImposter ? null : g.keyword,
         order: g.order.map((id) => nicknameOf(room, id)),
