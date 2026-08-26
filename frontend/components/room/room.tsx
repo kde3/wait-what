@@ -135,7 +135,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
               className="w-24"
               aria-label={t('optImageSeconds')}
               value={String(o.imageSeconds)}
-              items={secondsItems([45, 60, 90, 120, 180, 240])}
+              items={secondsItems([30, 45, 60, 100])}
               isDisabled={!isHost}
               onChange={(value) => setOption('imageSeconds', Number(value))}
             />
