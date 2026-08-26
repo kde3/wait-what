@@ -11,6 +11,7 @@ import { PromptPanel } from '../prompt-panel';
 import { GuessPanel } from '../guess-panel';
 import { TeamBadge } from '../team-badge';
 import { TimerBar } from '../timer-bar';
+import { Spinner } from '../../ui/spinner';
 import { apiUrl } from '../../../lib/backend-url';
 // ── 스피드 퀴즈 팀전 ─────────────────────────────────────
 
@@ -106,7 +107,7 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
           ) : (
             <>
               <div className="py-8 text-center text-sm text-muted">
-                <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
                 {t('teamImageWaiting')}
               </div>
               <GuessPanel guesses={g.guesses} disabled busy={busy} />

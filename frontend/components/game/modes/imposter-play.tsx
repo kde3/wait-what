@@ -10,6 +10,7 @@ import { useDraft } from '../../../hooks/use-draft';
 import { useGenerate } from '../../../hooks/use-generate';
 import { PromptPanel } from '../prompt-panel';
 import { TimerBar } from '../timer-bar';
+import { Spinner } from '../../ui/spinner';
 import { Input } from '@heroui/react';
 import { Button } from '../../ui/button';
 import { apiUrl } from '../../../lib/backend-url';
@@ -34,7 +35,8 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 font-medium">
         <span>
-          <Eye className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterPublic')}: <b>{g.imposter}</b>
+          <Eye className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" />{' '}
+          <b>{g.youAreImposter ? t('imposterYouAreShort') : t('imposterHiddenAmongUs')}</b>
         </span>
         <span className="text-xs text-muted">
           {t('keywordLabel')}: <b>{g.keyword ? wordText(g.keyword, lang) : t('imposterKeywordHidden')}</b>
@@ -113,7 +115,7 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
           </div>
         ) : (
           <div className="rounded-xl border bg-surface p-6 text-center text-foreground shadow-sm">
-            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
+            <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
             {t('imposterGuessWait')}
           </div>
         ))}

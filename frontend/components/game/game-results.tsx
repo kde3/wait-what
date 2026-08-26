@@ -1,89 +1,14 @@
 'use client';
 
-import { Article, BookOpen, Crown, Eye, Key, PartyPopper, Pencil, Share, Star, Target, Trophy, Users } from 'pixelarticons/react';
-import { useState } from 'react';
+import { Article, BookOpen, Crown, Eye, Key, PartyPopper, Pencil, Star, Target, Trophy, Users } from 'pixelarticons/react';
 import { useI18n } from '../i18n-provider';
 import { aiComment } from '../../lib/i18n';
 import { wordText } from '../../lib/words';
 import { TeamBadge } from './team-badge';
-import { sfx } from '../../lib/sound';
+import { ShareButton } from './share-button';
 import { Button } from '../ui/button';
+import { StatusBanner } from '../ui/status-banner';
 import { apiUrl } from '../../lib/backend-url';
-
-// 게임 결과 공유 텍스트 생성 (키워드/프롬프트 포함)
-function buildShareText(state, results, t, lang) {
-  const lines = [`🎨 ${t('appName')} — ${t('resultsTitle')}`];
-  const url = typeof window !== 'undefined' ? window.location.href : '';
-  switch (results.kind) {
-    case 'classic':
-      for (const album of results.albums) {
-        lines.push('');
-        lines.push(`📖 ${album.owner}${t('albumOf')}`);
-        album.entries.forEach((e) => {
-          if (e.type === 'text') lines.push(`  ✏️ ${e.author}: ${e.text}`);
-          else lines.push(`  🎨 ${e.author}: ${e.prompt || t('notSubmitted')}`);
-        });
-      }
-      break;
-    case 'speed':
-      results.scores?.forEach((s, i) => lines.push(`${i + 1}. ${s.nickname} — ${s.score}${t('points')}`));
-      results.history.forEach((h) => {
-        lines.push(`🔑 ${wordText(h.keyword, lang)} → ${h.winner ?? t('noWinner')}`);
-      });
-      break;
-    case 'speed_team':
-      lines.push(`${t('teamA')} ${results.teamScores[0]} : ${results.teamScores[1]} ${t('teamB')}`);
-      results.history.forEach((h) => {
-        lines.push(`🔑 ${wordText(h.keyword, lang)} → ${h.winner ?? t('noWinner')}`);
-      });
-      break;
-    case 'coop':
-      lines.push(`🎯 ${t('relayThemeLabel')}: ${wordText(results.theme, lang)}`);
-      results.groups.forEach((g) => {
-        if (g.score != null) lines.push(`⭐ ${t('aiScore')}: ${g.score}`);
-        g.cells.forEach((c) => c.prompt && lines.push(`  🧩 ${c.nickname}: ${c.prompt}`));
-      });
-      break;
-    case 'imposter':
-      lines.push(`🕵️ ${t('imposterPublic')}: ${results.imposter}`);
-      lines.push(`🔑 ${t('keywordWas')}: ${wordText(results.keyword, lang)}`);
-      lines.push(`💬 ${t('imposterGuessLabel')}: ${results.guess ?? '-'}`);
-      lines.push(results.won ? t('imposterWin') : t('imposterLose'));
-      break;
-  }
-  if (url) {
-    lines.push('');
-    lines.push(url);
-  }
-  return lines.join('\n');
-}
-
-function ShareButton({ state, results }) {
-  const { t, lang } = useI18n();
-  const [copied, setCopied] = useState(false);
-
-  async function share() {
-    const text = buildShareText(state, results, t, lang);
-    sfx.pop();
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: t('appName'), text });
-        return;
-      } catch {}
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {}
-  }
-
-  return (
-    <Button onClick={share} className="w-full">
-      {copied ? t('shareCopied') : <><Share className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('share')}</>}
-    </Button>
-  );
-}
 
 export default function GameResults({ state, playerId, api, busy, onLeave }: any) {
   const { t, lang } = useI18n();
@@ -288,17 +213,16 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
         </>
       )}
 
-      <ShareButton state={state} results={r} />
+      <ShareButton results={r} />
       {state.you?.staying ? (
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-3 rounded-lg border bg-surface-secondary px-3 py-2 text-sm text-muted">
-          <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-muted border-t-primary" aria-hidden="true" />
+        <StatusBanner className="mt-2 gap-3">
           <span>
             {t('stayingWait')} ({state.players.filter((p) => p.staying).length}/{state.players.length})
           </span>
           <Button variant="outline" className="h-7 w-auto px-2 text-xs" onClick={onLeave} isDisabled={busy}>
             {t('leaveRoom')}
           </Button>
-        </div>
+        </StatusBanner>
       ) : (
         <div className="mt-2 flex gap-2">
           <Button className="flex-1" onClick={() => api('restart', { playerId })} isDisabled={busy}>

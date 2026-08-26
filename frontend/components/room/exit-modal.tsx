@@ -1,7 +1,7 @@
 'use client';
 
-import { Modal } from '@heroui/react';
 import { Button } from '../ui/button';
+import { Modal } from '../ui/modal';
 import { useI18n } from '../i18n-provider';
 
 const REASON_KEYS = {
@@ -16,19 +16,14 @@ export function ExitModal({ isOpen = true, reason, onGoHome }: { isOpen?: boolea
   const { t } = useI18n();
   const keys = REASON_KEYS[reason] ?? REASON_KEYS.gone;
   return (
-    <Modal.Backdrop isOpen={isOpen} isDismissable={false}>
-      <Modal.Container size="sm" placement="center">
-        <Modal.Dialog>
-          <Modal.Header><Modal.Heading>{t(keys.title)}</Modal.Heading></Modal.Header>
-          <Modal.Body>
-            <p className="text-sm text-muted">{t(keys.message)}</p>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button className="w-full" onClick={onGoHome}>{t('goHome')}</Button>
-          </Modal.Footer>
-        </Modal.Dialog>
-      </Modal.Container>
-    </Modal.Backdrop>
+    <Modal
+      isOpen={isOpen}
+      isDismissable={false}
+      title={t(keys.title)}
+      footer={<Button className="w-full" onClick={onGoHome}>{t('goHome')}</Button>}
+    >
+      <p className="text-sm text-muted">{t(keys.message)}</p>
+    </Modal>
   );
 }
 

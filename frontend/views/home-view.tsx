@@ -9,17 +9,11 @@ import Header from '../components/layout/header';
 import { useHomeRooms } from '../hooks/use-realtime';
 import { playBgm, sfx } from '../lib/sound';
 import { apiUrl } from '../lib/backend-url';
-import { Card, FieldError, Input, Label, Modal, Radio, RadioGroup, TextField, toast } from '@heroui/react';
+import { MODE_LABEL_KEY } from '../lib/modes';
+import { Card, FieldError, Input, Label, TextField, toast } from '@heroui/react';
 import { Button } from '../components/ui/button';
+import { CreateRoomModal } from '../components/home/create-room-modal';
 import { ProfileSetup } from './profile-setup-view';
-
-const MODE_KEY = {
-  classic: 'modeClassic',
-  speed: 'modeSpeed',
-  speed_team: 'modeSpeedTeam',
-  coop: 'modeCoop',
-  imposter: 'modeImposter',
-};
 
 const SUGGESTED_ROOM_NAMES = [
   'AI 그림 전화방',
@@ -42,11 +36,7 @@ export default function HomeView() {
   const [busy, setBusy] = useState(false);
   const { rooms: publicRooms } = useHomeRooms(); // 웹소켓 푸시, 실패 시 폴링 폴백
   const [showCreate, setShowCreate] = useState(false);
-  const [roomName, setRoomName] = useState('');
   const [suggestedRoomName, setSuggestedRoomName] = useState(SUGGESTED_ROOM_NAMES[0]);
-  const [roomPassword, setRoomPassword] = useState('');
-  const [roomPasswordError, setRoomPasswordError] = useState('');
-  const [roomVisibility, setRoomVisibility] = useState('public');
 
   useEffect(() => {
     window.localStorage.removeItem('gp_nickname');
@@ -74,7 +64,6 @@ export default function HomeView() {
 
   function openCreateRoom() {
     const nextName = SUGGESTED_ROOM_NAMES[Math.floor(Math.random() * SUGGESTED_ROOM_NAMES.length)];
-    setRoomName('');
     setSuggestedRoomName(nextName);
     setShowCreate(true);
   }
@@ -87,24 +76,15 @@ export default function HomeView() {
     joinRoom(pick.code);
   }
 
-  async function createRoom() {
+  async function createRoom(roomName: string, password: string) {
     if (!requireNickname()) return;
-    if (roomVisibility === 'private' && !roomPassword) {
-      setRoomPasswordError(t('errRoomPasswordRequired'));
-      return;
-    }
     setBusy(true);
     setError('');
     sfx.click();
     const res = await fetch(apiUrl('/api/rooms'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nickname,
-        roomName: roomName.trim() || suggestedRoomName,
-        password: roomVisibility === 'private' ? roomPassword : '',
-        lang,
-      }),
+      body: JSON.stringify({ nickname, roomName, password, lang }),
     });
     const data = await res.json();
     setBusy(false);
@@ -239,7 +219,7 @@ export default function HomeView() {
                   <div className="flex min-w-0 flex-col gap-1">
                     <b>{r.name}</b>
                     <span className="text-xs text-muted">
-                      {t(MODE_KEY[r.mode])} · {r.players}/{r.maxPlayers} ·{' '}
+                      {t(MODE_LABEL_KEY[r.mode])} · {r.players}/{r.maxPlayers} ·{' '}
                       {r.status === 'room' ? t('statusRoom') : r.status === 'playing' ? t('statusPlaying') : t('statusFinished')}
                     </span>
                   </div>
@@ -258,84 +238,14 @@ export default function HomeView() {
 
         {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
 
-        <Modal.Backdrop isOpen={showCreate} onOpenChange={setShowCreate}>
-            <Modal.Container size="sm" placement="center">
-              <Modal.Dialog>
-              <Modal.Header><Modal.Heading>{t('createRoomTitle')}</Modal.Heading></Modal.Header>
-              <Modal.Body className="gap-0">
-              <div className="flex flex-col gap-6">
-              <RadioGroup
-                value={roomVisibility}
-                onChange={(value) => {
-                  setRoomVisibility(value);
-                  if (value === 'public') {
-                    setRoomPassword('');
-                    setRoomPasswordError('');
-                  }
-                }}
-                className="grid grid-cols-2 gap-3"
-                aria-label={t('roomVisibility')}
-              >
-                <Radio value="public">
-                  <Radio.Control><Radio.Indicator /></Radio.Control>
-                  <Radio.Content>{t('publicRoom')}</Radio.Content>
-                </Radio>
-                <Radio value="private">
-                  <Radio.Control><Radio.Indicator /></Radio.Control>
-                  <Radio.Content>{t('privateRoom')}</Radio.Content>
-                </Radio>
-              </RadioGroup>
-              <div className="flex flex-col gap-2">
-                <label className="block text-sm font-medium">{t('roomName')}</label>
-                <Input
-                  type="text"
-                  maxLength={30}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  placeholder={suggestedRoomName}
-                  value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
-                />
-              </div>
-              {roomVisibility === 'private' && (
-                <TextField fullWidth isInvalid={Boolean(roomPasswordError)} isRequired name="roomPassword" type="password" className="gap-2">
-                  <Label>{t('roomPassword')}</Label>
-                  <Input
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    data-1p-ignore
-                    data-lpignore="true"
-                    data-bwignore
-                    type="password"
-                    maxLength={32}
-                    placeholder={t('roomPasswordCreateHint')}
-                    value={roomPassword}
-                    onChange={(event) => {
-                      setRoomPassword(event.target.value);
-                      if (roomPasswordError) setRoomPasswordError('');
-                    }}
-                  />
-                  <FieldError>{roomPasswordError}</FieldError>
-                </TextField>
-              )}
-              {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-              </div>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" onClick={() => setShowCreate(false)}>
-                  {t('cancel')}
-                </Button>
-                <Button onClick={createRoom} isDisabled={busy}>
-                  {t('create')}
-                </Button>
-              </Modal.Footer>
-              </Modal.Dialog>
-            </Modal.Container>
-        </Modal.Backdrop>
+        <CreateRoomModal
+          isOpen={showCreate}
+          onOpenChange={setShowCreate}
+          suggestedName={suggestedRoomName}
+          busy={busy}
+          error={error}
+          onCreate={createRoom}
+        />
       </main>
     </>
   );

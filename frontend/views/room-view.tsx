@@ -9,6 +9,7 @@ import SpeedTeamPlay from '../components/game/modes/speed-team-play';
 import CoopPlay from '../components/game/modes/coop-play';
 import ImposterPlay from '../components/game/modes/imposter-play';
 import { useI18n } from '../components/i18n-provider';
+import { StatusBanner } from '../components/ui/status-banner';
 import type { RoomApi } from '../types/api';
 import type { RoomState } from '../types/room';
 
@@ -50,12 +51,7 @@ export function RoomView({
     <>
       <Header onBack={onBack} />
       <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6">
-        {!live && (
-          <div className="flex items-center justify-center gap-2 rounded-lg border bg-surface-secondary px-3 py-2 text-sm text-muted">
-            <span className="size-3 shrink-0 animate-spin rounded-full border-2 border-muted border-t-primary" aria-hidden="true" />
-            {t('reconnecting')}
-          </div>
-        )}
+        {!live && <StatusBanner>{t('reconnecting')}</StatusBanner>}
         {state.status === 'room' && (
           <Room state={state} playerId={playerId} api={api} busy={busy} error={error} onStarted={onStarted} />
         )}

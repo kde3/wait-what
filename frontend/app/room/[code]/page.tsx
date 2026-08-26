@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '../../../components/i18n-provider';
 import Header from '../../../components/layout/header';
 import { RoomView } from '../../../views/room-view';
+import { JoinRoomView } from '../../../views/join-room-view';
 import { useRoomState } from '../../../hooks/use-realtime';
 import { playBgm, sfx, stopBgm } from '../../../lib/sound';
 import { apiUrl } from '../../../lib/backend-url';
-import { Input, Label, TextField, toast } from '@heroui/react';
-import { Button } from '../../../components/ui/button';
+import { toast } from '@heroui/react';
+import { Spinner } from '../../../components/ui/spinner';
 import { ProfileSetup } from '../../../views/profile-setup-view';
 import { ExitModal } from '../../../components/room/exit-modal';
 
@@ -21,7 +22,6 @@ export default function Room({ params }: any) {
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [error, setError] = useState('');
   const [nickname, setNickname] = useState('');
-  const [password, setPassword] = useState('');
   const [roomInfo, setRoomInfo] = useState<any>(null);
   const [infoLoaded, setInfoLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -111,7 +111,7 @@ export default function Room({ params }: any) {
     [code, t, fetchState],
   );
 
-  async function join(nicknameValue = nickname) {
+  async function join(nicknameValue = nickname, password = '') {
     const cleanNickname = nicknameValue.trim();
     if (!cleanNickname) return setError(t('errNickname'));
     setNickname(cleanNickname);
@@ -158,41 +158,14 @@ export default function Room({ params }: any) {
     return (
       <>
         <Header onBack={() => router.push('/')} />
-        <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6">
-          <h1 className="text-center text-3xl font-bold tracking-tight">{t('appName')}</h1>
-          <p className="text-center text-sm text-muted">
-            {t('roomCodeLabel')}: <b>{code}</b>
-          </p>
-          {nickname && (
-            <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-              <p className="mb-3 text-center text-sm text-muted">{nickname}</p>
-              {needsPassword && (
-                <TextField fullWidth name="roomPassword" type="password">
-                  <Label>{t('roomPassword')}</Label>
-                  <Input
-                    autoFocus
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    data-1p-ignore
-                    data-lpignore="true"
-                    data-bwignore
-                    type="password"
-                    maxLength={32}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    onKeyDown={(event) => event.key === 'Enter' && join()}
-                  />
-                </TextField>
-              )}
-              <Button className="w-full" onClick={() => join()} isDisabled={busy || !infoLoaded}>
-              {t('join')}
-              </Button>
-              {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-            </div>
-          )}
-        </main>
+        <JoinRoomView
+          code={code}
+          nickname={nickname}
+          needsPassword={needsPassword}
+          busy={busy || !infoLoaded}
+          error={error}
+          onJoin={(password) => join(nickname, password)}
+        />
       </>
     );
   }
@@ -203,7 +176,7 @@ export default function Room({ params }: any) {
         <Header onBack={() => router.push('/')} />
         <main className="mx-auto w-full max-w-xl space-y-4 px-4 py-6">
           <div className="py-8 text-center text-sm text-muted">
-            <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
+            <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
             {t('loading')}
             {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
           </div>
@@ -229,5 +202,3 @@ export default function Room({ params }: any) {
     />
   );
 }
-
-

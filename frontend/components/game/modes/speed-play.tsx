@@ -11,6 +11,7 @@ import { PromptPanel } from '../prompt-panel';
 import { GuessPanel } from '../guess-panel';
 import { Scoreboard } from '../scoreboard';
 import { TimerBar } from '../timer-bar';
+import { Spinner } from '../../ui/spinner';
 import { apiUrl } from '../../../lib/backend-url';
 // ── 스피드 퀴즈 ──────────────────────────────────────────
 
@@ -77,7 +78,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
         <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
           {g.phase === 'draw' ? (
             <div className="py-8 text-center text-sm text-muted">
-              <div className="mx-auto mb-3 size-6 animate-spin rounded-full border-2 border-muted border-t-primary" />
+              <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
               {t('speedWaitingDrawer')}
             </div>
           ) : (

@@ -227,7 +227,6 @@ export const imposterTurnState: RoomState = {
     kind: 'imposter',
     phase: 'turns',
     remaining: 90,
-    imposter: '초록 로봇',
     youAreImposter: false,
     keyword: KW_LIGHTHOUSE,
     order: ['익명 방장', '그림 고양이', '초록 로봇'],
@@ -243,7 +242,6 @@ export const imposterAsImposterState: RoomState = {
   ...imposterBase,
   game: {
     ...imposterTurnState.game,
-    imposter: '익명 방장',
     youAreImposter: true,
     keyword: null,
     turnIndex: 1,
@@ -259,7 +257,6 @@ export const imposterGuessState: RoomState = {
     ...imposterTurnState.game,
     phase: 'guess',
     remaining: 45,
-    imposter: '익명 방장',
     youAreImposter: true,
     keyword: null,
     turnNickname: null,
