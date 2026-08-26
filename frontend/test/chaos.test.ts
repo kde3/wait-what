@@ -2,17 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { CHAOS_CHARACTERS, CHAOS_CHARACTER_BY_ID } from '../lib/chaos';
 
 describe('카오스 캐릭터 데이터', () => {
-  it('6개 시스템 캐릭터와 효과 타입을 중앙 데이터에서 제공한다', () => {
+  it('7개 시스템 캐릭터와 효과 타입을 중앙 데이터에서 제공한다', () => {
     expect(CHAOS_CHARACTERS.map((character) => character.id)).toEqual([
       '404',
       'glitch',
       'pixel',
       'filter',
-      'autocorrect',
+      'retry',
+      'timeout',
       'null',
     ]);
     expect(new Set(CHAOS_CHARACTERS.map((character) => character.effectType))).toEqual(
-      new Set(['crop', 'shuffle', 'zoom', 'mood', 'noun_swap', 'weird']),
+      new Set(['crop', 'shuffle', 'pixel', 'filter', 'generation_limit', 'time_half', 'random']),
     );
   });
 
@@ -24,7 +25,7 @@ describe('카오스 캐릭터 데이터', () => {
       expect(character.systemMessageKey).toBeTruthy();
       expect(character).toHaveProperty('image');
       expect(character).toHaveProperty('icon');
-      expect(character.colorKey).toBe(character.id);
+      expect(character.image).toBe(`/images/characters/${character.id === '404' ? character.id : character.id.toUpperCase()}.png`);
     }
   });
 });

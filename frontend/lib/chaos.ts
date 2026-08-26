@@ -24,13 +24,13 @@ export interface ChaosCharacterData {
 }
 
 export const CHAOS_CHARACTERS: ChaosCharacterData[] = [
-  { id: '404', effectType: 'crop', nameKey: 'chaos404Name', descriptionKey: 'chaos404Description', systemMessageKey: 'chaos404SystemMessage', image: '/images/characters/blueberry.png', icon: null, colorKey: '404' },
-  { id: 'glitch', effectType: 'shuffle', nameKey: 'chaosGlitchName', descriptionKey: 'chaosGlitchDescription', systemMessageKey: 'chaosGlitchSystemMessage', image: '/images/characters/grape.png', icon: null, colorKey: 'glitch' },
-  { id: 'pixel', effectType: 'pixel', nameKey: 'chaosPixelName', descriptionKey: 'chaosPixelDescription', systemMessageKey: 'chaosPixelSystemMessage', image: '/images/characters/pineapple.png', icon: null, colorKey: 'pixel' },
-  { id: 'filter', effectType: 'filter', nameKey: 'chaosFilterName', descriptionKey: 'chaosFilterDescription', systemMessageKey: 'chaosFilterSystemMessage', image: '/images/characters/green-apple.png', icon: null, colorKey: 'filter' },
-  { id: 'retry', effectType: 'generation_limit', nameKey: 'chaosRetryName', descriptionKey: 'chaosRetryDescription', systemMessageKey: 'chaosRetrySystemMessage', image: '/images/characters/strawberry.png', icon: null, colorKey: 'autocorrect' },
-  { id: 'timeout', effectType: 'time_half', nameKey: 'chaosTimeoutName', descriptionKey: 'chaosTimeoutDescription', systemMessageKey: 'chaosTimeoutSystemMessage', image: '/images/characters/tangerine.png', icon: null, colorKey: 'pixel' },
-  { id: 'null', effectType: 'random', nameKey: 'chaosNullName', descriptionKey: 'chaosNullDescription', systemMessageKey: 'chaosNullSystemMessage', image: '/images/characters/cherry.png', icon: null, colorKey: 'null' },
+  { id: '404', effectType: 'crop', nameKey: 'chaos404Name', descriptionKey: 'chaos404Description', systemMessageKey: 'chaos404SystemMessage', image: '/images/characters/404.png', icon: null, colorKey: '404' },
+  { id: 'glitch', effectType: 'shuffle', nameKey: 'chaosGlitchName', descriptionKey: 'chaosGlitchDescription', systemMessageKey: 'chaosGlitchSystemMessage', image: '/images/characters/GLITCH.png', icon: null, colorKey: 'glitch' },
+  { id: 'pixel', effectType: 'pixel', nameKey: 'chaosPixelName', descriptionKey: 'chaosPixelDescription', systemMessageKey: 'chaosPixelSystemMessage', image: '/images/characters/PIXEL.png', icon: null, colorKey: 'pixel' },
+  { id: 'filter', effectType: 'filter', nameKey: 'chaosFilterName', descriptionKey: 'chaosFilterDescription', systemMessageKey: 'chaosFilterSystemMessage', image: '/images/characters/FILTER.png', icon: null, colorKey: 'filter' },
+  { id: 'retry', effectType: 'generation_limit', nameKey: 'chaosRetryName', descriptionKey: 'chaosRetryDescription', systemMessageKey: 'chaosRetrySystemMessage', image: '/images/characters/RETRY.png', icon: null, colorKey: 'autocorrect' },
+  { id: 'timeout', effectType: 'time_half', nameKey: 'chaosTimeoutName', descriptionKey: 'chaosTimeoutDescription', systemMessageKey: 'chaosTimeoutSystemMessage', image: '/images/characters/TIMEOUT.png', icon: null, colorKey: 'pixel' },
+  { id: 'null', effectType: 'random', nameKey: 'chaosNullName', descriptionKey: 'chaosNullDescription', systemMessageKey: 'chaosNullSystemMessage', image: '/images/characters/NULL.png', icon: null, colorKey: 'null' },
 ];
 
 export const CHAOS_CHARACTER_BY_ID = Object.fromEntries(

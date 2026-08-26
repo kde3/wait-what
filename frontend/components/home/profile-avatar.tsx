@@ -5,14 +5,13 @@ import { Avatar } from '@heroui/react';
 import { Reload } from 'pixelarticons/react';
 
 const CHARACTER_IMAGES = [
-  '/images/characters/blueberry.png',
-  '/images/characters/cherry.png',
-  '/images/characters/grape.png',
-  '/images/characters/green-apple.png',
-  '/images/characters/peach.png',
-  '/images/characters/pineapple.png',
-  '/images/characters/strawberry.png',
-  '/images/characters/tangerine.png',
+  '/images/characters/404.png',
+  '/images/characters/FILTER.png',
+  '/images/characters/GLITCH.png',
+  '/images/characters/NULL.png',
+  '/images/characters/PIXEL.png',
+  '/images/characters/RETRY.png',
+  '/images/characters/TIMEOUT.png',
 ] as const;
 
 const PROFILE_IMAGE_STORAGE_KEY = 'ww_profile_image';
