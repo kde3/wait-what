@@ -19,14 +19,14 @@ export function ChaosPlay({ state, playerId, api, busy, error }: ComponentProps<
       {character === 'null' ? (
         <aside className="space-y-3 rounded-xl border bg-surface px-4 py-3 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <ChaosCharacter character="null" size="small" state="active" />
+            <ChaosCharacter character="null" size="small" state="active" showDescription className="min-w-0 flex-1" />
             <span className="shrink-0 font-mono text-xs font-bold tracking-[0.14em] text-danger">{t('chaosRandomError')}</span>
           </div>
           {activeCharacter && (
             <div className="flex items-center justify-between gap-3 border-t pt-3">
               <span className="text-xs font-medium text-muted">{t('chaosCurrentTurn')}</span>
               <div className="flex items-center gap-3">
-                <ChaosCharacter character={activeCharacter} size="small" state="active" />
+                <ChaosCharacter character={activeCharacter} size="small" state="active" showDescription className="min-w-0" />
                 <span className="font-mono text-xs font-bold tracking-[0.14em] text-danger">{t('chaosActive')}</span>
               </div>
             </div>
@@ -34,7 +34,7 @@ export function ChaosPlay({ state, playerId, api, busy, error }: ComponentProps<
         </aside>
       ) : (
         <aside className="flex items-center justify-between gap-3 rounded-xl border bg-surface px-4 py-3 shadow-sm">
-          <ChaosCharacter character={character} size="small" state="active" />
+          <ChaosCharacter character={character} size="small" state="active" showDescription className="min-w-0 flex-1" />
           <span className="shrink-0 font-mono text-xs font-bold tracking-[0.14em] text-danger">{t('chaosActive')}</span>
         </aside>
       )}

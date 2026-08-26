@@ -333,13 +333,15 @@ describe('classic', () => {
 });
 
 describe('chaos', () => {
-  it('게임 시작 시 6개 캐릭터 중 정확히 하나를 서버가 선택한다', () => {
+  it('게임 시작 시 7개 캐릭터 중 정확히 하나를 서버가 선택하고 공개 단계를 8초간 유지한다', () => {
     const { room, ids } = makeRoom(2);
     configRoom(room, ids[0], { mode: 'chaos' });
+    const startedAt = Date.now();
     expect(startGame(room, ids[0])).toEqual({});
     expect(CHAOS_CHARACTERS.map((character) => character.id)).toContain(room.game.chaosCharacterId);
     expect(room.game.phase).toBe('reveal');
     expect(room.game.chaosCharacterId).toBeTruthy();
+    expect(room.game.revealEndsAt - startedAt).toBe(8000);
   });
 
   it('reveal 동안 행동을 막고 종료 후 클래식 흐름을 그대로 사용한다', () => {

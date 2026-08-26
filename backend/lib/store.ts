@@ -321,7 +321,8 @@ function initClassic(room) {
   };
 }
 
-const CHAOS_REVEAL_MS = 4000;
+// 캐릭터 룰렛(약 3초) 후 최종 효과 설명을 약 5초간 노출한다.
+const CHAOS_REVEAL_MS = 8000;
 
 function initChaos(room) {
   const game: Record<string, any> = initClassic(room);

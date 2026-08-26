@@ -15,6 +15,7 @@ interface ChaosCharacterProps {
   character: ChaosCharacterId;
   size?: ChaosCharacterSize;
   state?: ChaosCharacterState;
+  showDescription?: boolean;
   className?: string;
 }
 
@@ -24,7 +25,7 @@ const sizeClasses: Record<ChaosCharacterSize, { frame: string; avatar: string; c
   large: { frame: 'flex-col gap-4 text-center', avatar: 'size-40 rounded-[2rem]', code: 'text-2xl' },
 };
 
-export function ChaosCharacter({ character: characterId, size = 'medium', state = 'idle', className = '' }: ChaosCharacterProps) {
+export function ChaosCharacter({ character: characterId, size = 'medium', state = 'idle', showDescription = false, className = '' }: ChaosCharacterProps) {
   const { t } = useI18n();
   const character = CHAOS_CHARACTER_BY_ID[characterId];
   const classes = sizeClasses[size];
@@ -54,12 +55,16 @@ export function ChaosCharacter({ character: characterId, size = 'medium', state 
       </div>
       <figcaption className={size === 'small' ? 'min-w-0' : 'max-w-sm'}>
         <strong className={size === 'large' ? 'block text-3xl' : 'block text-sm'}>{t(character.nameKey)}</strong>
-        {size !== 'small' && (
+        {(size !== 'small' || showDescription) && (
           <>
-            <span className="mt-1 block font-mono text-xs font-bold tracking-[0.16em]" style={{ color }}>
-              {t(character.systemMessageKey)}
+            {size !== 'small' && (
+              <span className="mt-1 block font-mono text-xs font-bold tracking-[0.16em]" style={{ color }}>
+                {t(character.systemMessageKey)}
+              </span>
+            )}
+            <span className={size === 'small' ? 'mt-0.5 block font-description text-xs text-muted' : 'mt-2 block font-description text-sm text-muted'}>
+              {t(character.descriptionKey)}
             </span>
-            <span className="mt-2 block font-description text-sm text-muted">{t(character.descriptionKey)}</span>
           </>
         )}
       </figcaption>
