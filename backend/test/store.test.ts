@@ -280,7 +280,8 @@ describe('classic', () => {
     startGame(room, ids[0]);
     submitAction(room, ids[0], { text: '고양이' });
     submitAction(room, ids[1], { text: '강아지' });
-    expect(canGenerate(room, ids[0])).toEqual({ keyword: null });
+    expect(canGenerate(room, ids[0])).toEqual({ keyword: '강아지' });
+    expect(promptViolation(room, '귀여운 강아지 그림', canGenerate(room, ids[0]).keyword)).toBe('강아지');
     expect(submitAction(room, ids[0], {}).error).toBe('errGenerateFirst');
     applyDraft(room, ids[0], '고양이 그림', '/api/mock-image?s=1');
     expect(submitAction(room, ids[0], {})).toEqual({});
@@ -537,7 +538,7 @@ describe('coop', () => {
     const { room, ids } = makeRoom(1);
     configRoom(room, ids[0], { mode: 'coop' });
     startGame(room, ids[0]);
-    expect(canGenerate(room, ids[0])).toEqual({ keyword: null });
+    expect(canGenerate(room, ids[0])).toEqual({ keyword: room.game.theme });
     expect(submitAction(room, ids[0], {}).error).toBe('errGenerateFirst');
     applyDraft(room, ids[0], '조각 그림', 'url');
     submitAction(room, ids[0], {});
@@ -614,14 +615,13 @@ describe('imposter', () => {
     expect(submitAction(room, notCurrent, {}).error).toBe('errNotYourTurn');
   });
 
-  it('임포스터에게는 keyword가 없고 시민에게는 keyword가 주어진다', () => {
+  it('생성 검사에는 임포스터를 포함해 모두 같은 keyword가 주어진다', () => {
     const { room } = imposterRoom();
     const g = room.game;
     for (let turn = 0; turn < g.order.length; turn++) {
       const pid = g.order[g.turn];
       const check = canGenerate(room, pid);
-      if (pid === g.imposterId) expect(check.keyword).toBeNull();
-      else expect(check.keyword).toBe(g.keyword);
+      expect(check.keyword).toBe(g.keyword);
       playTurn(room);
     }
     expect(g.phase).toBe('vote');
@@ -629,13 +629,16 @@ describe('imposter', () => {
     expect(g.entries.every((e) => !e.skipped)).toBe(true);
   });
 
-  it('시민은 키워드가 프롬프트에 들어가면 반려되고 임포스터는 제한이 없다', () => {
+  it('언어와 역할에 관계없이 키워드가 프롬프트에 들어가면 반려된다', () => {
     const { room } = imposterRoom();
     const g = room.game;
     expect(promptViolation(room, `아주 멋진 ${g.keyword.ko} 그림`, g.keyword)).toBe(g.keyword.ko);
     expect(promptViolation(room, `beautiful ${g.keyword.en} art`, g.keyword)).toBe(g.keyword.en);
     expect(promptViolation(room, '키워드 없는 평범한 그림', g.keyword)).toBeNull();
-    expect(promptViolation(room, `아주 멋진 ${g.keyword.ko} 그림`, null)).toBeNull();
+    const imposterCheck = canGenerate(room, g.imposterId);
+    if (!imposterCheck.error) {
+      expect(promptViolation(room, `아주 멋진 ${g.keyword.ko} 그림`, imposterCheck.keyword)).toBe(g.keyword.ko);
+    }
   });
 
   it('차례 타임아웃이면 skipped 엔트리가 쌓인다', () => {

@@ -72,11 +72,12 @@ export function wordMatches(word, guess) {
   return Object.values(word).some((v) => normalizeText(v) === g);
 }
 
-// 비밀 키워드가 있는 모드에서는 키워드 자체가 프롬프트에 포함되면 반려
+// 현재 제시어의 다국어 표현(또는 사용자 제시 문장)이 프롬프트에 포함되면 반려
 export function promptViolation(room, prompt, keyword) {
   const p = normalizeText(prompt);
   if (keyword) {
-    for (const raw of Object.values(keyword)) {
+    const variants = typeof keyword === 'string' ? [keyword] : Object.values(keyword);
+    for (const raw of variants) {
       const v = normalizeText(raw);
       if (v && p.includes(v)) return raw;
     }
@@ -740,7 +741,9 @@ export function canGenerate(room, playerId) {
       if (room.mode === 'chaos' && activeChaosCharacterId(room, playerId) === 'retry' && (g.submissions.get(playerId)?.generateCount ?? 0) >= 3) {
         return { error: 'errChaosGenerateLimit' };
       }
-      return { keyword: null };
+      const chain = g.chains[classicChainIndex(room, playerId)] ?? [];
+      const sourceText = chain[chain.length - 1]?.text ?? null;
+      return { keyword: sourceText };
     }
     case 'speed': {
       if (g.phase !== 'draw' || g.drawerId !== playerId) return { error: 'errNotYourTurn' };
@@ -755,12 +758,12 @@ export function canGenerate(room, playerId) {
     }
     case 'coop': {
       if (g.subs.get(playerId)?.submitted) return { error: 'errAlreadySubmitted' };
-      return { keyword: null };
+      return { keyword: g.theme };
     }
     case 'imposter': {
       if (g.phase !== 'turns' || g.order[g.turn] !== playerId) return { error: 'errNotYourTurn' };
-      // 임포스터가 아닌 사람은 키워드를 프롬프트에 쓸 수 없다
-      return { keyword: playerId === g.imposterId ? null : g.keyword };
+      // 임포스터도 우연히 정답을 입력하면 생성 프롬프트로는 사용할 수 없다.
+      return { keyword: g.keyword };
     }
     default:
       return { error: 'errBadMode' };
