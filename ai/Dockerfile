@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.11.0-cuda12.8-cudnn9-runtime
+FROM runpod/pytorch:1.0.3-cu1281-torch291-ubuntu2404
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
