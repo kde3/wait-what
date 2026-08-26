@@ -15,9 +15,9 @@ const CHARACTER_IMAGES = [
   '/images/characters/tangerine.png',
 ] as const;
 
-const PROFILE_IMAGE_STORAGE_KEY = 'garticphone-profile-image';
+const PROFILE_IMAGE_STORAGE_KEY = 'ww_profile_image';
 
-const PROFILE_IMAGE_EVENT = 'gp:profile-image';
+const PROFILE_IMAGE_EVENT = 'ww:profile-image';
 
 interface ProfileAvatarProps {
   nickname?: string;
@@ -36,7 +36,6 @@ export function ProfileAvatar({ nickname = '익명', imageUrl, className, change
       return;
     }
 
-    window.localStorage.removeItem(PROFILE_IMAGE_STORAGE_KEY);
     const savedImage = window.sessionStorage.getItem(PROFILE_IMAGE_STORAGE_KEY);
     if (savedImage && CHARACTER_IMAGES.includes(savedImage as (typeof CHARACTER_IMAGES)[number])) {
       setSelectedImage(savedImage);

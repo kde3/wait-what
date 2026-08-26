@@ -53,15 +53,14 @@ function bindLifecycle() {
 
 export function isMuted() {
   if (mutedCache === null) {
-    if (typeof window !== 'undefined') window.localStorage.removeItem('gp_muted');
-    mutedCache = typeof window !== 'undefined' && window.sessionStorage.getItem('gp_muted') === '1';
+    mutedCache = typeof window !== 'undefined' && window.localStorage.getItem('ww_muted') === '1';
   }
   return mutedCache;
 }
 
 export function getVolume() {
   if (volumeCache === null) {
-    const raw = typeof window !== 'undefined' ? window.sessionStorage.getItem('gp_volume') : null;
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem('ww_volume') : null;
     const parsed = raw === null ? NaN : Number(raw);
     volumeCache = Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : DEFAULT_VOLUME;
   }
@@ -71,7 +70,7 @@ export function getVolume() {
 export function setVolume(v) {
   volumeCache = Math.min(1, Math.max(0, Number(v) || 0));
   try {
-    window.sessionStorage.setItem('gp_volume', String(volumeCache));
+    window.localStorage.setItem('ww_volume', String(volumeCache));
   } catch {}
   if (bgmAudio) bgmAudio.volume = BGM_BASE_VOLUME * volumeCache;
 }
@@ -79,7 +78,7 @@ export function setVolume(v) {
 export function setMuted(m) {
   mutedCache = !!m;
   try {
-    window.sessionStorage.setItem('gp_muted', m ? '1' : '0');
+    window.localStorage.setItem('ww_muted', m ? '1' : '0');
   } catch {}
   if (m) {
     bgmAudio?.pause();
