@@ -19,7 +19,7 @@ COPY requirements.txt ./
 RUN python -m pip install --break-system-packages --no-cache-dir -r requirements.txt
 
 COPY app.py ./
-COPY scripts/download_model.py scripts/start-container.sh ./scripts/
+COPY scripts/download_model.py scripts/start-container.sh scripts/verify_cuda.py ./scripts/
 RUN chmod 0755 ./scripts/start-container.sh
 
 EXPOSE 7860

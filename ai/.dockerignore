@@ -5,3 +5,4 @@
 scripts/*
 !scripts/download_model.py
 !scripts/start-container.sh
+!scripts/verify_cuda.py
