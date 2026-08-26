@@ -39,8 +39,7 @@ export default function HomeView() {
   const [suggestedRoomName, setSuggestedRoomName] = useState(SUGGESTED_ROOM_NAMES[0]);
 
   useEffect(() => {
-    window.localStorage.removeItem('gp_nickname');
-    const savedNickname = window.sessionStorage.getItem('gp_nickname')?.trim() ?? '';
+    const savedNickname = window.sessionStorage.getItem('ww_nickname')?.trim() ?? '';
     setNickname(savedNickname);
     setShowNickname(!savedNickname);
     setProfileChecked(true);
@@ -49,7 +48,7 @@ export default function HomeView() {
 
   function saveNickname(value: string) {
     setNickname(value);
-    window.sessionStorage.setItem('gp_nickname', value);
+    window.sessionStorage.setItem('ww_nickname', value);
     setShowNickname(false);
     playBgm('home');
   }
@@ -92,7 +91,7 @@ export default function HomeView() {
       toast.danger(t(data.error ?? 'errRequest'), { timeout: 5000 });
       return;
     }
-    sessionStorage.setItem(`gp_player_${data.code}`, data.playerId);
+    sessionStorage.setItem(`ww_player_${data.code}`, data.playerId);
     router.push(`/room/${data.code}`);
   }
 
@@ -129,7 +128,7 @@ export default function HomeView() {
       toast.danger(t(data.error ?? 'errRequest'), { timeout: 5000 });
       return;
     }
-    sessionStorage.setItem(`gp_player_${data.code}`, data.playerId);
+    sessionStorage.setItem(`ww_player_${data.code}`, data.playerId);
     router.push(`/room/${data.code}`);
   }
 

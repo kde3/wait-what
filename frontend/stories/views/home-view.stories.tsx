@@ -6,8 +6,8 @@ import { useHomeRooms } from '../../hooks/use-realtime';
 import { emptyHomeRooms, homeRooms } from '../mocks/room-states';
 
 const setNickname = (nickname: string | null) => {
-  if (nickname === null) window.sessionStorage.removeItem('gp_nickname');
-  else window.sessionStorage.setItem('gp_nickname', nickname);
+  if (nickname === null) window.sessionStorage.removeItem('ww_nickname');
+  else window.sessionStorage.setItem('ww_nickname', nickname);
 };
 
 const setRooms = (rooms: typeof homeRooms) => {
