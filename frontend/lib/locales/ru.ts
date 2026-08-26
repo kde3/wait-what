@@ -2,6 +2,7 @@
 export const dict = {
   appName: 'wait, what?',
   tagline: 'Вечериночная игра с рисунками от ИИ',
+  gameGuide: 'Как играть',
   nickname: 'Ник',
   changeProfile: 'Сменить профиль',
   nicknamePlaceholder: 'Введи ник',

@@ -53,6 +53,7 @@ export { LANGS, LANG_LABELS, SPEECH_LANGS } from './langs';
 const ko = {
   appName: 'wait, what?',
   tagline: 'AI 그림으로 즐기는 파티 게임',
+  gameGuide: '게임 방법',
   nickname: '닉네임',
   nicknamePlaceholder: '닉네임 입력',
   nicknameWelcomeTitle: '프로필 생성',
@@ -274,6 +275,7 @@ const ko = {
 const en = {
   appName: 'wait, what?',
   tagline: 'A party game powered by AI drawings',
+  gameGuide: 'How to play',
   nickname: 'Nickname',
   nicknamePlaceholder: 'Enter nickname',
   nicknameWelcomeTitle: 'What should we call you?',
@@ -495,6 +497,7 @@ const en = {
 const ja = {
   appName: 'wait, what?',
   tagline: 'AIイラストで遊ぶパーティーゲーム',
+  gameGuide: '遊び方',
   nickname: 'ニックネーム',
   nicknamePlaceholder: 'ニックネームを入力',
   nicknameWelcomeTitle: 'ニックネームを決めましょう',
@@ -713,6 +716,7 @@ const ja = {
 const zh = {
   appName: 'wait, what?',
   tagline: '用 AI 绘画玩的派对游戏',
+  gameGuide: '游戏方法',
   nickname: '昵称',
   nicknamePlaceholder: '输入昵称',
   nicknameWelcomeTitle: '该怎么称呼你？',
