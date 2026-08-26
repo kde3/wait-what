@@ -381,7 +381,7 @@ describe('speed', () => {
     return { room, ids };
   }
 
-  it('생성 전부터 정답을 시도할 수 있고 이미지 확정 시 타이머가 초기화되지 않는다', () => {
+  it('생성 전부터 정답을 시도하고 시간 안에 이미지를 계속 갱신할 수 있다', () => {
     const { room, ids } = speedRoom();
     const g = room.game;
     expect(g.phase).toBe('draw');
@@ -394,8 +394,13 @@ describe('speed', () => {
     const endsAt = g.endsAt;
     applyDraft(room, drawer, '그림', '/api/mock-image?s=1');
     expect(submitAction(room, drawer, {})).toEqual({});
-    expect(g.phase).toBe('guess');
+    expect(g.phase).toBe('draw');
     expect(g.image).toBe('/api/mock-image?s=1');
+    expect(g.endsAt).toBe(endsAt);
+    expect(canGenerate(room, drawer).keyword).toBe(g.keyword);
+    applyDraft(room, drawer, '두 번째 그림', '/api/mock-image?s=2');
+    expect(submitAction(room, drawer, {})).toEqual({});
+    expect(g.image).toBe('/api/mock-image?s=2');
     expect(g.endsAt).toBe(endsAt);
   });
 
@@ -517,6 +522,10 @@ describe('speed_team', () => {
     applyDraft(room, drawer, '그림', 'url-0');
     expect(submitAction(room, drawer, {})).toEqual({});
     expect(g.teams[0].image).toBe('url-0');
+    expect(canGenerate(room, drawer).keyword).toBe(g.keyword);
+    applyDraft(room, drawer, '다시 그림', 'url-1');
+    expect(submitAction(room, drawer, {})).toEqual({});
+    expect(g.teams[0].image).toBe('url-1');
     expect(guessAction(room, drawer, g.keyword.ko).error).toBe('errDrawerCannotGuess');
     const guesser = room.players.find((p) => p.team === 0 && p.id !== drawer).id;
     expect(guessAction(room, guesser, g.keyword.en)).toEqual({ correct: true });

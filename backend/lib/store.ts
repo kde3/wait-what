@@ -753,7 +753,6 @@ export function canGenerate(room, playerId) {
       if (g.phase !== 'play') return { error: 'errNotDrawPhase' };
       const t = player.team;
       if (g.drawers[t] !== playerId) return { error: 'errNotYourTurn' };
-      if (g.teams[t].image) return { error: 'errAlreadySubmitted' };
       return { keyword: g.keyword };
     }
     case 'coop': {
@@ -832,7 +831,6 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
       if (g.phase !== 'draw' || g.drawerId !== playerId) return { error: 'errNotYourTurn' };
       if (!g.draftUrl) return { error: 'errGenerateFirst' };
       g.image = g.draftUrl;
-      g.phase = 'guess';
       return {};
     }
     case 'speed_team': {
