@@ -8,9 +8,10 @@ import { sfx } from '../../../lib/sound';
 import { useCountdown } from '../../../hooks/use-countdown';
 import { useDraft } from '../../../hooks/use-draft';
 import { useGenerate } from '../../../hooks/use-generate';
+import { ImposterVotePanel } from '../imposter-vote-panel';
 import { PromptPanel } from '../prompt-panel';
 import { TimerBar } from '../timer-bar';
-import { Spinner } from '../../ui/spinner';
+import { StatusBanner } from '../../ui/status-banner';
 import { Input } from '@heroui/react';
 import { Button } from '../../ui/button';
 import { apiUrl } from '../../../lib/backend-url';
@@ -29,6 +30,10 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
     if (!guessText.trim()) return;
     const data = await api('guess', { playerId, text: guessText });
     if (data) (data.correct ? sfx.correct : sfx.wrong)();
+  }
+
+  async function sendVote(index) {
+    if (await api('vote', { playerId, target: index })) sfx.submit();
   }
 
   return (
@@ -92,33 +97,48 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
         </div>
       )}
 
-      {g.phase === 'guess' &&
-        (g.youAreImposter ? (
-          <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterGuessTitle')}</h2>
-            <Input
-              type="text"
-              maxLength={100}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder={t('guessInputPlaceholder')}
-              value={guessText}
-              onChange={(e) => setGuessText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendGuess()}
-            />
-            <Button className="w-full" onClick={sendGuess} isDisabled={busy || !guessText.trim()}>
-              {t('guessBtn')}
-            </Button>
-            {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-          </div>
-        ) : (
-          <div className="rounded-xl border bg-surface p-6 text-center text-foreground shadow-sm">
-            <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
-            {t('imposterGuessWait')}
-          </div>
-        ))}
+      {g.phase === 'vote' && (
+        <ImposterVotePanel
+          candidates={g.candidates}
+          yourVote={g.yourVote}
+          votedCount={g.votedCount}
+          voterTotal={g.voterTotal}
+          busy={busy}
+          onVote={sendVote}
+        />
+      )}
+
+      {g.phase === 'guess' && (
+        <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+          <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterCaughtTitle')}</h2>
+          <p className="text-sm text-muted">
+            {t('imposterAccusedLabel')}: <b>{g.accused}</b>
+          </p>
+          {g.youAreImposter ? (
+            <>
+              <p className="mt-3 font-medium">{t('imposterGuessTitle')}</p>
+              <Input
+                type="text"
+                maxLength={100}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder={t('guessInputPlaceholder')}
+                value={guessText}
+                onChange={(e) => setGuessText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendGuess()}
+              />
+              <Button className="w-full" onClick={sendGuess} isDisabled={busy || !guessText.trim()}>
+                {t('guessBtn')}
+              </Button>
+              {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
+            </>
+          ) : (
+            <StatusBanner className="mt-3">{t('imposterGuessWait')}</StatusBanner>
+          )}
+        </div>
+      )}
     </>
   );
 }
