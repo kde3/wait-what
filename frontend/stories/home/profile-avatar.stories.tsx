@@ -2,14 +2,13 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { ProfileAvatar } from '../../components/home/profile-avatar';
 
 const CHARACTERS = [
-  'blueberry',
-  'cherry',
-  'grape',
-  'green-apple',
-  'peach',
-  'pineapple',
-  'strawberry',
-  'tangerine',
+  '404',
+  'FILTER',
+  'GLITCH',
+  'NULL',
+  'PIXEL',
+  'RETRY',
+  'TIMEOUT',
 ];
 
 const meta = {
