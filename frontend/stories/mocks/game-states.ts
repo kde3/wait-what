@@ -219,7 +219,13 @@ export const coopResultState: RoomState = {
   },
 };
 
-const imposterBase = { ...roomState, mode: 'imposter' as const, status: 'playing' as const };
+const imposterBase = { ...roomState, mode: 'imposter' as const, status: 'playing' as const, minPlayers: 3 };
+
+const IMPOSTER_CHAT = [
+  { nickname: '익명 방장', text: '초록 로봇 그림이 좀 애매하지 않았어?', you: true },
+  { nickname: '그림 고양이', text: '나도 그렇게 봤어', you: false },
+  { nickname: '초록 로봇', text: '야 나 억울해', you: false },
+];
 
 const IMPOSTER_CANDIDATES = [
   { nickname: '익명 방장', you: true, left: false },
@@ -248,6 +254,7 @@ export const imposterTurnState: RoomState = {
     entries: [],
     draft: { prompt: null, url: null },
     candidates: IMPOSTER_CANDIDATES,
+    chat: [],
     yourVote: null,
     votedCount: 0,
     voterTotal: 3,
@@ -278,6 +285,7 @@ export const imposterVoteState: RoomState = {
     turnNickname: null,
     youAreCurrent: false,
     entries: IMPOSTER_ENTRIES,
+    chat: IMPOSTER_CHAT,
     votedCount: 1,
   },
 };

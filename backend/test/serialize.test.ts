@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   advance,
   applyDraft,
+  chatAction,
   configRoom,
   createRoom,
   deleteRoom,
@@ -156,6 +157,33 @@ describe('플레이어 id 비노출', () => {
     guessAction(room, g.imposterId, g.keyword.ko);
     expect(room.status).toBe('finished');
     expectNoIdLeak(room, ids);
+  });
+});
+
+describe('채팅 · 최소 인원 직렬화', () => {
+  it('채팅에는 playerId가 없고 본인 여부는 you 플래그로만 온다', () => {
+    const { room, ids } = makeRoom(3);
+    configRoom(room, ids[0], { mode: 'imposter' });
+    startGame(room, ids[0]);
+    chatAction(room, ids[0], '누가 수상해?');
+    chatAction(room, ids[1], '나는 아니야');
+    for (const viewer of ids) {
+      const state = buildState(room, viewer);
+      expect(state.game.chat).toHaveLength(2);
+      expect(state.game.chat.every((m) => m.playerId === undefined)).toBe(true);
+      const mine = state.game.chat.filter((m) => m.you).length;
+      expect(mine).toBe(viewer === ids[2] ? 0 : 1);
+    }
+    expectNoIdLeak(room, ids);
+  });
+
+  it('minPlayers는 현재 모드 기준으로 내려간다', () => {
+    const { room, ids } = makeRoom(3);
+    expect(buildState(room, ids[0]).minPlayers).toBe(1);
+    configRoom(room, ids[0], { mode: 'imposter' });
+    expect(buildState(room, ids[0]).minPlayers).toBe(3);
+    configRoom(room, ids[0], { mode: 'speed' });
+    expect(buildState(room, ids[0]).minPlayers).toBe(2);
   });
 });
 

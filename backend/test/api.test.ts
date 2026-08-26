@@ -172,6 +172,35 @@ describe('config / start / submit / guess', () => {
     expect(guess.data.error).toBe('errNotPlaying');
   });
 
+  it('채팅은 게임 중에만 되고 누구나 자유롭게 보낼 수 있다', async () => {
+    const host = await createRoomHttp();
+    const guest = await joinHttp(host.code, '손님1');
+    await joinHttp(host.code, '손님2');
+    const early = await post(`/rooms/${host.code}/chat`, { playerId: host.playerId, text: '안녕' });
+    expect(early.status).toBe(400);
+    expect(early.data.error).toBe('errNotPlaying');
+
+    await post(`/rooms/${host.code}/config`, { playerId: host.playerId, patch: { mode: 'imposter' } });
+    await post(`/rooms/${host.code}/start`, { playerId: host.playerId });
+    const game = getRoom(host.code).game;
+
+    const sent = await post(`/rooms/${host.code}/chat`, { playerId: host.playerId, text: '누가 수상해?' });
+    expect(sent.status).toBe(200);
+
+    const crew = game.order.find((id) => id !== game.imposterId);
+    const keywordChat = await post(`/rooms/${host.code}/chat`, { playerId: crew, text: `혹시 ${game.keyword.ko}?` });
+    expect(keywordChat.status).toBe(200);
+
+    const empty = await post(`/rooms/${host.code}/chat`, { playerId: host.playerId, text: '   ' });
+    expect(empty.status).toBe(400);
+    expect(empty.data.error).toBe('errEmptyText');
+
+    const state = await get(`/rooms/${host.code}/state?playerId=${guest.data.playerId}`);
+    expect(state.data.game.chat).toHaveLength(2);
+    expect(state.data.game.chat[0]).toEqual({ nickname: '방장', text: '누가 수상해?', you: false });
+    expect(state.data.minPlayers).toBe(3);
+  });
+
   it('imposter 한 판: 차례 → 투표 → 지목 → 추리', async () => {
     const host = await createRoomHttp();
     await joinHttp(host.code, '손님1');

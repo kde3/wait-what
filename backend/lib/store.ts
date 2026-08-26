@@ -16,6 +16,10 @@ export const MODES = ['classic', 'speed', 'speed_team', 'coop', 'imposter'];
 
 export const MAX_PLAYERS = 12;
 
+export const MIN_PLAYERS = { classic: 1, speed: 2, speed_team: 2, coop: 1, imposter: 3 };
+
+const MAX_CHAT = 60;
+
 export const DIFFICULTIES = ['normal', 'hard', 'hell'];
 
 export const DEFAULT_OPTIONS = {
@@ -107,6 +111,7 @@ export function createRoom(nickname, { name, password, lang }: Record<string, an
     options: { ...DEFAULT_OPTIONS },
     players: [{ id: hostId, nickname, isHost: true, team: null, score: 0 }],
     names: new Map([[hostId, nickname]]),
+    chat: [],
     game: null,
     createdAt: Date.now(),
   };
@@ -249,8 +254,7 @@ export function startGame(room, playerId) {
   if (room.status !== 'room') return { error: 'errAlreadyStarted' };
 
   const n = room.players.length;
-  const min = { classic: 1, speed: 2, speed_team: 2, coop: 1, imposter: 3 }[room.mode];
-  if (n < min) return { error: 'errNotEnoughPlayers' };
+  if (n < MIN_PLAYERS[room.mode]) return { error: 'errNotEnoughPlayers' };
 
   if (isTeamGame(room)) {
     ensureTeams(room);
@@ -265,6 +269,7 @@ export function startGame(room, playerId) {
   }
 
   const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, coop: initCoop, imposter: initImposter };
+  room.chat = [];
   room.game = init[room.mode](room);
   room.status = 'playing';
   return {};
@@ -282,6 +287,7 @@ export function stayInRoom(room, playerId) {
 export function backToLobby(room) {
   room.status = 'room';
   room.game = null;
+  room.chat = [];
   for (const p of room.players) {
     p.score = 0;
     p.staying = false;
@@ -620,6 +626,17 @@ function advImposter(room) {
   } else if (g.phase === 'guess' && now() >= g.endsAt) {
     imposterFinish(room, g, null);
   }
+}
+
+export function chatAction(room, playerId, text) {
+  if (room.status !== 'playing') return { error: 'errNotPlaying' };
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) return { error: 'errNotPlayer' };
+  const message = String(text ?? '').trim().slice(0, 200);
+  if (!message) return { error: 'errEmptyText' };
+  room.chat.push({ playerId, nickname: player.nickname, text: message });
+  if (room.chat.length > MAX_CHAT) room.chat.splice(0, room.chat.length - MAX_CHAT);
+  return {};
 }
 
 export function voteAction(room, playerId, targetIndex) {

@@ -12,7 +12,7 @@ import {
 const meta = {
   title: 'Game/Imposter Play',
   component: ImposterPlay,
-  decorators: [(Story) => <main className="mx-auto max-w-3xl space-y-4 p-6"><Story /></main>],
+  decorators: [(Story) => <main className="mx-auto max-w-5xl space-y-4 p-6"><Story /></main>],
   args: {
     state: imposterTurnState,
     playerId: 'storybook-player',

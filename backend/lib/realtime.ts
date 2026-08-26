@@ -95,6 +95,7 @@ function stateKey(room) {
     room.isPublic ? 1 : 0,
     room.players.map((p) => `${p.nickname}:${p.team}:${p.score}:${p.staying ? 1 : 0}`).join(','),
     JSON.stringify(room.options),
+    room.chat?.length,
   ];
   if (g) {
     parts.push(
