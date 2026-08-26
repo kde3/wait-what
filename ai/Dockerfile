@@ -27,4 +27,5 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10m --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/health/ready', timeout=3)"
 
-ENTRYPOINT ["/app/scripts/start-container.sh"]
+ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]
+CMD ["/app/scripts/start-container.sh"]
