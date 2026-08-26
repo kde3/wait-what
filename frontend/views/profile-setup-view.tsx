@@ -8,6 +8,7 @@ import { Tabs } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { useI18n } from '../components/i18n-provider';
 import { ProfileAvatar } from '../components/home/profile-avatar';
+import { GameRulesCarousel } from '../components/home/game-rules-carousel';
 
 interface ProfileSetupProps {
   initialValue?: string;
@@ -49,13 +50,17 @@ export function ProfileSetup({ initialValue = '', isBusy = false, onSubmit }: Pr
             >
             <Tabs defaultSelectedKey="guest">
               <Tabs.ListContainer>
-                <Tabs.List className="grid-cols-2">
+                <Tabs.List className="grid-cols-3">
                   <Tabs.Tab id="guest">
                     {t('guestProfile')}
                     <Tabs.Indicator />
                   </Tabs.Tab>
                   <Tabs.Tab id="social">
                     {t('socialLogin')}
+                    <Tabs.Indicator />
+                  </Tabs.Tab>
+                  <Tabs.Tab id="guide">
+                    {t('gameGuide')}
                     <Tabs.Indicator />
                   </Tabs.Tab>
                 </Tabs.List>
@@ -103,6 +108,10 @@ export function ProfileSetup({ initialValue = '', isBusy = false, onSubmit }: Pr
                   <InfoBox className="size-10 text-[var(--palette-text-muted)]" aria-hidden="true" />
                   <p className="font-description text-sm text-[var(--palette-text-secondary)]">{t('socialLoginUnavailable')}</p>
                 </div>
+              </Tabs.Panel>
+
+              <Tabs.Panel id="guide" className="min-h-[360px] pt-2">
+                <GameRulesCarousel />
               </Tabs.Panel>
             </Tabs>
             </Form>

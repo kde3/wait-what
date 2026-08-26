@@ -2,6 +2,7 @@
 export const dict = {
   appName: 'wait, what?',
   tagline: 'Un juego de fiesta con dibujos de IA',
+  gameGuide: 'Cómo jugar',
   nickname: 'Apodo',
   changeProfile: 'Cambiar perfil',
   nicknamePlaceholder: 'Escribe tu apodo',

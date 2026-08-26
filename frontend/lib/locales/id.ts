@@ -2,6 +2,7 @@
 export const dict = {
   appName: 'wait, what?',
   tagline: 'Game seru bareng teman dengan gambar AI',
+  gameGuide: 'Cara bermain',
   nickname: 'Nama panggilan',
   changeProfile: 'Ganti profil',
   nicknamePlaceholder: 'Masukkan nama panggilan',
