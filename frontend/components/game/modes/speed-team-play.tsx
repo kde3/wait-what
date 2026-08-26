@@ -79,22 +79,15 @@ export function SpeedTeamPlay({ state, playerId, api, busy, error }) {
           {g.youAreDrawer ? (
             <>
               <div className="inline-flex rounded-full bg-surface-tertiary px-4 py-2 font-semibold text-foreground"><Key className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {wordText(g.keyword, lang)}</div>
-              {mine.imageReady ? (
-                <>
-                  <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(mine.image)} alt="AI" draggable={false} />
-                  <GuessPanel guesses={g.guesses} disabled busy={busy} />
-                </>
-              ) : (
-                <PromptPanel
-                  prompt={prompt}
-                  setPrompt={setPrompt}
-                  imageUrl={imageUrl}
-                  generating={generating}
-                  busy={busy}
-                  onGenerate={() => generate(prompt)}
-                  onCancelGenerate={cancelGenerate}
-                />
-              )}
+              <PromptPanel
+                prompt={prompt}
+                setPrompt={setPrompt}
+                imageUrl={imageUrl}
+                generating={generating}
+                busy={busy}
+                onGenerate={() => generate(prompt)}
+                onCancelGenerate={cancelGenerate}
+              />
             </>
           ) : mine.imageReady ? (
             <>
