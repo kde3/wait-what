@@ -1,0 +1,7 @@
+*
+!app.py
+!requirements.txt
+!scripts/
+scripts/*
+!scripts/download_model.py
+!scripts/start-container.sh
