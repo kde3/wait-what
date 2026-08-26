@@ -14,8 +14,10 @@ import {
   stayInRoom,
   setTeam,
   startGame,
+  chatAction,
   submitAction,
   unsubmitAction,
+  voteAction,
 } from './lib/store.js';
 import { buildState } from './lib/serialize.js';
 import { aiEnabled, generateImage, AiError } from './lib/ai.js';
@@ -179,6 +181,26 @@ for (const [path, action] of submissionActions) {
     res.json({ ok: true });
   });
 }
+
+apiRouter.post('/rooms/:code/chat', (req, res) => {
+  const room = roomOr404(req, res);
+  if (!room) return;
+  advance(room);
+  const result = chatAction(room, req.body?.playerId, req.body?.text);
+  if (result.error) return res.status(400).json({ error: result.error });
+  touch(req.params.code);
+  res.json({ ok: true });
+});
+
+apiRouter.post('/rooms/:code/vote', (req, res) => {
+  const room = roomOr404(req, res);
+  if (!room) return;
+  advance(room);
+  const result = voteAction(room, req.body?.playerId, req.body?.target);
+  if (result.error) return res.status(400).json({ error: result.error });
+  touch(req.params.code);
+  res.json({ ok: true });
+});
 
 apiRouter.post('/rooms/:code/guess', (req, res) => {
   const room = roomOr404(req, res);

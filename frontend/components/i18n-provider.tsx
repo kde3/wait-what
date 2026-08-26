@@ -11,8 +11,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState('ko');
 
   useEffect(() => {
-    window.localStorage.removeItem('gp_lang');
-    const saved = window.sessionStorage.getItem('gp_lang');
+    const saved = window.localStorage.getItem('ww_lang');
     if (saved && LANGS.includes(saved)) {
       setLangState(saved);
     } else {
@@ -24,7 +23,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLang = (l) => {
     if (!LANGS.includes(l)) return;
     setLangState(l);
-    window.sessionStorage.setItem('gp_lang', l);
+    window.localStorage.setItem('ww_lang', l);
   };
 
   const t = (key) => translate(lang, key);

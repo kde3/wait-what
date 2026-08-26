@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { createGameServer } from '../app';
 import { cancelLeave, RECONNECT_GRACE_MS } from '../lib/realtime';
-import { deleteRoom } from '../lib/store';
+import { deleteRoom, getRoom } from '../lib/store';
 
 let server;
 let port;
@@ -170,6 +170,76 @@ describe('config / start / submit / guess', () => {
     const guess = await post(`/rooms/${host.code}/guess`, { playerId: host.playerId, text: '정답' });
     expect(guess.status).toBe(400);
     expect(guess.data.error).toBe('errNotPlaying');
+  });
+
+  it('채팅은 게임 중에만 되고 누구나 자유롭게 보낼 수 있다', async () => {
+    const host = await createRoomHttp();
+    const guest = await joinHttp(host.code, '손님1');
+    await joinHttp(host.code, '손님2');
+    const early = await post(`/rooms/${host.code}/chat`, { playerId: host.playerId, text: '안녕' });
+    expect(early.status).toBe(400);
+    expect(early.data.error).toBe('errNotPlaying');
+
+    await post(`/rooms/${host.code}/config`, { playerId: host.playerId, patch: { mode: 'imposter' } });
+    await post(`/rooms/${host.code}/start`, { playerId: host.playerId });
+    const game = getRoom(host.code).game;
+
+    const sent = await post(`/rooms/${host.code}/chat`, { playerId: host.playerId, text: '누가 수상해?' });
+    expect(sent.status).toBe(200);
+
+    const crew = game.order.find((id) => id !== game.imposterId);
+    const keywordChat = await post(`/rooms/${host.code}/chat`, { playerId: crew, text: `혹시 ${game.keyword.ko}?` });
+    expect(keywordChat.status).toBe(200);
+
+    const empty = await post(`/rooms/${host.code}/chat`, { playerId: host.playerId, text: '   ' });
+    expect(empty.status).toBe(400);
+    expect(empty.data.error).toBe('errEmptyText');
+
+    const state = await get(`/rooms/${host.code}/state?playerId=${guest.data.playerId}`);
+    expect(state.data.game.chat).toHaveLength(2);
+    expect(state.data.game.chat[0]).toEqual({ nickname: '방장', text: '누가 수상해?', you: false });
+    expect(state.data.minPlayers).toBe(3);
+  });
+
+  it('imposter 한 판: 차례 → 투표 → 지목 → 추리', async () => {
+    const host = await createRoomHttp();
+    await joinHttp(host.code, '손님1');
+    await joinHttp(host.code, '손님2');
+    await post(`/rooms/${host.code}/config`, { playerId: host.playerId, patch: { mode: 'imposter' } });
+    expect((await post(`/rooms/${host.code}/start`, { playerId: host.playerId })).status).toBe(200);
+
+    const room = getRoom(host.code);
+    const game = room.game;
+
+    for (let i = 0; i < game.order.length; i++) {
+      const pid = game.order[game.turn];
+      expect((await post(`/rooms/${host.code}/generate`, { playerId: pid, prompt: `zzz${i}` })).status).toBe(200);
+      expect((await post(`/rooms/${host.code}/submit`, { playerId: pid })).status).toBe(200);
+    }
+    expect(game.phase).toBe('vote');
+
+    const selfVote = await post(`/rooms/${host.code}/vote`, { playerId: game.order[0], target: 0 });
+    expect(selfVote.status).toBe(400);
+    expect(selfVote.data.error).toBe('errCannotVoteSelf');
+
+    const imposterIndex = game.order.indexOf(game.imposterId);
+    const otherIndex = game.order.findIndex((id) => id !== game.imposterId);
+    for (const id of game.order) {
+      const target = id === game.imposterId ? otherIndex : imposterIndex;
+      expect((await post(`/rooms/${host.code}/vote`, { playerId: id, target })).status).toBe(200);
+    }
+    expect(game.caught).toBe(true);
+    expect(game.phase).toBe('guess');
+
+    const crew = game.order.find((id) => id !== game.imposterId);
+    const denied = await post(`/rooms/${host.code}/guess`, { playerId: crew, text: '아무거나' });
+    expect(denied.status).toBe(400);
+    expect(denied.data.error).toBe('errImposterOnly');
+
+    const win = await post(`/rooms/${host.code}/guess`, { playerId: game.imposterId, text: game.keyword.ko });
+    expect(win.status).toBe(200);
+    expect(win.data.correct).toBe(true);
+    expect(room.status).toBe('finished');
   });
 
   it('speed 한 라운드: 금지어 → 생성 → 제출 → 정답', async () => {

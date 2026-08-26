@@ -33,6 +33,7 @@ export interface RoomState {
   teamGame: boolean;
   options: RoomOptions;
   maxPlayers: number;
+  minPlayers: number;
   players: Player[];
   you: Player | null;
   game?: Record<string, any>;

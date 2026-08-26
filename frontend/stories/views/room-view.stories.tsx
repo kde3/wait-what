@@ -7,9 +7,11 @@ import {
   chaosPlayState,
   chaosResultState,
   chaosRevealState,
+  imposterEscapedResultState,
   imposterGuessState,
   imposterResultState,
   imposterTurnState,
+  imposterVoteState,
   speedGuessState,
   speedResultState,
   speedTeamPlayState,
@@ -46,6 +48,7 @@ export const PlayingCoop: Story = { args: { state: coopPlayState } };
 export const PlayingChaosReveal: Story = { args: { state: chaosRevealState } };
 export const PlayingChaos: Story = { args: { state: chaosPlayState } };
 export const PlayingImposter: Story = { args: { state: imposterTurnState } };
+export const PlayingImposterVote: Story = { args: { state: imposterVoteState } };
 export const PlayingImposterGuess: Story = { args: { state: imposterGuessState } };
 
 export const ResultClassic: Story = { args: { state: classicResultState } };
@@ -54,3 +57,4 @@ export const ResultSpeedTeam: Story = { args: { state: speedTeamResultState } };
 export const ResultCoop: Story = { args: { state: coopResultState } };
 export const ResultChaos: Story = { args: { state: chaosResultState } };
 export const ResultImposter: Story = { args: { state: imposterResultState } };
+export const ResultImposterEscaped: Story = { args: { state: imposterEscapedResultState } };

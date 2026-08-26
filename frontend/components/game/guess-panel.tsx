@@ -1,20 +1,16 @@
 'use client';
 
 import { Check } from 'pixelarticons/react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { Input } from '@heroui/react';
 import { Button } from '../ui/button';
+import { ScrollFeed } from '../ui/scroll-feed';
 
 // 정답 추측 피드 + 입력 (스피드 퀴즈 계열)
 export function GuessPanel({ guesses, onGuess, disabled, busy }: any) {
   const { t } = useI18n();
   const [text, setText] = useState('');
-  const feedRef = useRef(null);
-
-  useEffect(() => {
-    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
-  }, [guesses?.length]);
 
   async function send() {
     const value = text.trim();
@@ -25,14 +21,14 @@ export function GuessPanel({ guesses, onGuess, disabled, busy }: any) {
 
   return (
     <div className="space-y-2">
-      <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-surface-secondary p-3" ref={feedRef}>
+      <ScrollFeed bottomKey={guesses?.length}>
         {(guesses ?? []).map((g, i) => (
           <div key={i} className={g.correct ? 'flex gap-2 text-sm font-medium text-accent' : 'flex gap-2 text-sm'}>
             <b>{g.nickname}</b>
             <span>{g.correct ? <><Check className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {g.text ?? t('correctMark')}</> : g.text}</span>
           </div>
         ))}
-      </div>
+      </ScrollFeed>
       {!disabled && (
         <div className="flex items-start gap-2">
           <Input

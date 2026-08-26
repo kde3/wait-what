@@ -262,7 +262,25 @@ export const coopResultState: RoomState = {
   },
 };
 
-const imposterBase = { ...roomState, mode: 'imposter' as const, status: 'playing' as const };
+const imposterBase = { ...roomState, mode: 'imposter' as const, status: 'playing' as const, minPlayers: 3 };
+
+const IMPOSTER_CHAT = [
+  { nickname: '익명 방장', text: '초록 로봇 그림이 좀 애매하지 않았어?', you: true },
+  { nickname: '그림 고양이', text: '나도 그렇게 봤어', you: false },
+  { nickname: '초록 로봇', text: '야 나 억울해', you: false },
+];
+
+const IMPOSTER_CANDIDATES = [
+  { nickname: '익명 방장', you: true, left: false },
+  { nickname: '그림 고양이', you: false, left: false },
+  { nickname: '초록 로봇', you: false, left: false },
+];
+
+const IMPOSTER_ENTRIES = [
+  { nickname: '익명 방장', url: MOCK_IMAGE, skipped: false },
+  { nickname: '그림 고양이', url: MOCK_IMAGE, skipped: false },
+  { nickname: '초록 로봇', url: MOCK_IMAGE, skipped: false },
+];
 
 export const imposterTurnState: RoomState = {
   ...imposterBase,
@@ -278,6 +296,12 @@ export const imposterTurnState: RoomState = {
     youAreCurrent: true,
     entries: [],
     draft: { prompt: null, url: null },
+    candidates: IMPOSTER_CANDIDATES,
+    chat: [],
+    yourVote: null,
+    votedCount: 0,
+    voterTotal: 3,
+    accused: null,
   },
 };
 
@@ -294,6 +318,36 @@ export const imposterAsImposterState: RoomState = {
   },
 };
 
+export const imposterVoteState: RoomState = {
+  ...imposterBase,
+  game: {
+    ...imposterTurnState.game,
+    phase: 'vote',
+    remaining: 30,
+    turnIndex: 3,
+    turnNickname: null,
+    youAreCurrent: false,
+    entries: IMPOSTER_ENTRIES,
+    chat: IMPOSTER_CHAT,
+    votedCount: 1,
+  },
+};
+
+export const imposterVotedState: RoomState = {
+  ...imposterBase,
+  game: {
+    ...imposterVoteState.game,
+    remaining: 12,
+    yourVote: 2,
+    votedCount: 2,
+    candidates: [
+      { nickname: '익명 방장', you: true, left: false },
+      { nickname: '그림 고양이', you: false, left: true },
+      { nickname: '초록 로봇', you: false, left: false },
+    ],
+  },
+};
+
 export const imposterGuessState: RoomState = {
   ...imposterBase,
   game: {
@@ -302,13 +356,24 @@ export const imposterGuessState: RoomState = {
     remaining: 45,
     youAreImposter: true,
     keyword: null,
+    turnIndex: 3,
     turnNickname: null,
     youAreCurrent: false,
+    accused: '초록 로봇',
     entries: [
       { nickname: '익명 방장', url: MOCK_IMAGE, skipped: false },
       { nickname: '그림 고양이', url: MOCK_IMAGE, skipped: false },
       { nickname: '중퇴자', url: null, skipped: true },
     ],
+  },
+};
+
+export const imposterGuessWaitState: RoomState = {
+  ...imposterBase,
+  game: {
+    ...imposterGuessState.game,
+    youAreImposter: false,
+    keyword: KW_LIGHTHOUSE,
   },
 };
 
@@ -321,10 +386,34 @@ export const imposterResultState: RoomState = {
     imposter: '초록 로봇',
     guess: '전망대',
     won: false,
+    caught: true,
+    accused: '초록 로봇',
+    votes: [
+      { nickname: '익명 방장', target: '초록 로봇' },
+      { nickname: '그림 고양이', target: '초록 로봇' },
+      { nickname: '초록 로봇', target: '익명 방장' },
+    ],
     entries: [
       { nickname: '익명 방장', url: MOCK_IMAGE, prompt: '바다 위의 흰 탑', skipped: false },
       { nickname: '그림 고양이', url: MOCK_IMAGE, prompt: '밤바다를 비추는 빛', skipped: false },
       { nickname: '중퇴자', url: null, prompt: null, skipped: true },
+    ],
+  },
+};
+
+export const imposterEscapedResultState: RoomState = {
+  ...imposterBase,
+  status: 'finished',
+  results: {
+    ...imposterResultState.results,
+    guess: null,
+    won: true,
+    caught: false,
+    accused: '그림 고양이',
+    votes: [
+      { nickname: '익명 방장', target: '그림 고양이' },
+      { nickname: '그림 고양이', target: '초록 로봇' },
+      { nickname: '초록 로봇', target: '그림 고양이' },
     ],
   },
 };

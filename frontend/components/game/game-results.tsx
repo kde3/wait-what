@@ -233,8 +233,13 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
               {t('keywordWas')}: <b>{wordText(r.keyword, lang)}</b>
             </p>
             <p className="my-2 text-sm">
-              {t('imposterGuessLabel')}: <b>{r.guess ?? '-'}</b>
+              {t('imposterAccusedLabel')}: <b>{r.accused ?? t('imposterNobodyAccused')}</b>
             </p>
+            {r.caught && (
+              <p className="my-2 text-sm">
+                {t('imposterGuessLabel')}: <b>{r.guess ?? '-'}</b>
+              </p>
+            )}
           </div>
           <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
             <h2>{t('imposterGallery')}</h2>

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   advance,
   applyDraft,
+  chatAction,
   configRoom,
   createRoom,
   deleteRoom,
@@ -11,6 +12,7 @@ import {
   setTeam,
   startGame,
   submitAction,
+  voteAction,
 } from '../lib/store';
 import { buildState } from '../lib/serialize';
 
@@ -28,6 +30,15 @@ function timeout(room) {
   vi.useFakeTimers();
   vi.setSystemTime(room.game.endsAt + 1000);
   advance(room);
+}
+
+function voteAllAgainst(room, targetId) {
+  const g = room.game;
+  const targetIndex = g.order.indexOf(targetId);
+  const otherIndex = g.order.findIndex((id) => id !== targetId && room.players.some((p) => p.id === id));
+  for (const p of [...room.players]) {
+    voteAction(room, p.id, p.id === targetId ? otherIndex : targetIndex);
+  }
 }
 
 function expectNoIdLeak(room, ids) {
@@ -169,9 +180,41 @@ describe('플레이어 id 비노출', () => {
         advance(room);
       }
     }
+    expect(g.phase).toBe('vote');
+    expectNoIdLeak(room, ids);
+    voteAllAgainst(room, g.imposterId);
+    expect(g.phase).toBe('guess');
+    expectNoIdLeak(room, ids);
     guessAction(room, g.imposterId, g.keyword.ko);
     expect(room.status).toBe('finished');
     expectNoIdLeak(room, ids);
+  });
+});
+
+describe('채팅 · 최소 인원 직렬화', () => {
+  it('채팅에는 playerId가 없고 본인 여부는 you 플래그로만 온다', () => {
+    const { room, ids } = makeRoom(3);
+    configRoom(room, ids[0], { mode: 'imposter' });
+    startGame(room, ids[0]);
+    chatAction(room, ids[0], '누가 수상해?');
+    chatAction(room, ids[1], '나는 아니야');
+    for (const viewer of ids) {
+      const state = buildState(room, viewer);
+      expect(state.game.chat).toHaveLength(2);
+      expect(state.game.chat.every((m) => m.playerId === undefined)).toBe(true);
+      const mine = state.game.chat.filter((m) => m.you).length;
+      expect(mine).toBe(viewer === ids[2] ? 0 : 1);
+    }
+    expectNoIdLeak(room, ids);
+  });
+
+  it('minPlayers는 현재 모드 기준으로 내려간다', () => {
+    const { room, ids } = makeRoom(3);
+    expect(buildState(room, ids[0]).minPlayers).toBe(1);
+    configRoom(room, ids[0], { mode: 'imposter' });
+    expect(buildState(room, ids[0]).minPlayers).toBe(3);
+    configRoom(room, ids[0], { mode: 'speed' });
+    expect(buildState(room, ids[0]).minPlayers).toBe(2);
   });
 });
 
@@ -222,15 +265,43 @@ describe('imposter 공개 범위', () => {
       applyDraft(room, pid, '프롬프트', `url-${g.turn}`);
       submitAction(room, pid, {});
     }
+    const imposterNickname = room.players.find((p) => p.id === g.imposterId).nickname;
+    voteAllAgainst(room, g.imposterId);
     guessAction(room, g.imposterId, '전혀 다른 오답');
     expect(room.status).toBe('finished');
-    const imposterNickname = room.players.find((p) => p.id === g.imposterId).nickname;
     for (const viewer of ids) {
       const state = buildState(room, viewer);
       expect(state.results.imposter).toBe(imposterNickname);
       expect(state.results.keyword).toEqual(g.keyword);
       expect(state.results.won).toBe(false);
+      expect(state.results.caught).toBe(true);
+      expect(state.results.accused).toBe(imposterNickname);
+      expect(state.results.votes).toHaveLength(3);
     }
+  });
+
+  it('투표 중에는 누가 누구를 찍었는지 내려가지 않는다', () => {
+    const { room, ids } = makeRoom(3);
+    configRoom(room, ids[0], { mode: 'imposter' });
+    startGame(room, ids[0]);
+    const g = room.game;
+    while (g.phase === 'turns') {
+      const pid = g.order[g.turn];
+      applyDraft(room, pid, '프롬프트', `url-${g.turn}`);
+      submitAction(room, pid, {});
+    }
+    voteAction(room, g.order[0], 1);
+    for (const viewer of ids) {
+      const state = buildState(room, viewer);
+      expect(state.game.phase).toBe('vote');
+      expect(state.game.votes).toBeUndefined();
+      expect(state.game.votedCount).toBe(1);
+      expect(state.game.voterTotal).toBe(3);
+      expect(state.game.candidates).toHaveLength(3);
+      expect(state.game.candidates.filter((c) => c.you)).toHaveLength(1);
+      expect(state.game.yourVote).toBe(viewer === g.order[0] ? 1 : null);
+    }
+    expectNoIdLeak(room, ids);
   });
 });
 

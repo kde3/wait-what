@@ -8,9 +8,11 @@ import { sfx } from '../../../lib/sound';
 import { useCountdown } from '../../../hooks/use-countdown';
 import { useDraft } from '../../../hooks/use-draft';
 import { useGenerate } from '../../../hooks/use-generate';
+import { ChatPanel } from '../chat-panel';
+import { ImposterVotePanel } from '../imposter-vote-panel';
 import { PromptPanel } from '../prompt-panel';
 import { TimerBar } from '../timer-bar';
-import { Spinner } from '../../ui/spinner';
+import { StatusBanner } from '../../ui/status-banner';
 import { Input } from '@heroui/react';
 import { Button } from '../../ui/button';
 import { apiUrl } from '../../../lib/backend-url';
@@ -23,7 +25,6 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
   const { generating, generate, cancelGenerate } = useGenerate(api, playerId, setImageUrl);
   const remaining = useCountdown(g.remaining, `${g.phase}:${g.turnIndex}`);
   const [guessText, setGuessText] = useState('');
-  const [chatText, setChatText] = useState('');
   const totalSecs = g.phase === 'turns' ? state.options.imageSeconds : state.options.textSeconds;
 
   async function sendGuess() {
@@ -32,10 +33,12 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
     if (data) (data.correct ? sfx.correct : sfx.wrong)();
   }
 
-  async function sendChat() {
-    const text = chatText.trim();
-    if (!text) return;
-    if (await api('chat', { playerId, text })) setChatText('');
+  async function sendVote(index) {
+    if (await api('vote', { playerId, target: index })) sfx.submit();
+  }
+
+  async function sendChat(text) {
+    await api('chat', { playerId, text });
   }
 
   return (
@@ -80,82 +83,79 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
         </div>
       )}
 
-      {g.phase === 'turns' && g.youAreCurrent && (
-        <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-          <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
-          <PromptPanel
-            prompt={prompt}
-            setPrompt={setPrompt}
-            imageUrl={imageUrl}
-            generating={generating}
-            busy={busy}
-            onGenerate={() => generate(prompt)}
-            onCancelGenerate={cancelGenerate}
-            onSubmit={async () => {
-              if (await api('submit', { playerId })) sfx.submit();
-            }}
-          />
-          {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-        </div>
-      )}
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
+        <div className="space-y-4 lg:order-2">
+          {g.phase === 'turns' && g.youAreCurrent && (
+            <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+              <h2><Pencil className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('relayYourTurn')}</h2>
+              <PromptPanel
+                prompt={prompt}
+                setPrompt={setPrompt}
+                imageUrl={imageUrl}
+                generating={generating}
+                busy={busy}
+                onGenerate={() => generate(prompt)}
+                onCancelGenerate={cancelGenerate}
+                onSubmit={async () => {
+                  if (await api('submit', { playerId })) sfx.submit();
+                }}
+              />
+              {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
+            </div>
+          )}
 
-      {g.phase === 'guess' &&
-        (g.youAreImposter ? (
-          <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-            <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterGuessTitle')}</h2>
-            <Input
-              type="text"
-              maxLength={100}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder={t('guessInputPlaceholder')}
-              value={guessText}
-              onChange={(e) => setGuessText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendGuess()}
+          {g.phase === 'vote' && (
+            <ImposterVotePanel
+              candidates={g.candidates}
+              yourVote={g.yourVote}
+              votedCount={g.votedCount}
+              voterTotal={g.voterTotal}
+              busy={busy}
+              onVote={sendVote}
             />
-            <Button className="w-full" onClick={sendGuess} isDisabled={busy || !guessText.trim()}>
-              {t('guessBtn')}
-            </Button>
-            {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
-          </div>
-        ) : (
-          <div className="rounded-xl border bg-surface p-6 text-center text-foreground shadow-sm">
-            <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
-            {t('imposterGuessWait')}
-          </div>
-        ))}
+          )}
 
-      <section className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
-        <h2>{t('chatTitle')}</h2>
-        <div className="mt-3 flex max-h-44 min-h-24 flex-col justify-end gap-2 overflow-y-auto rounded-lg bg-surface-secondary p-3 text-sm">
-          {g.chat?.map((message, index) => (
-            <p key={`${message.createdAt}-${index}`} className="break-words">
-              <b>{message.nickname}</b>: {message.text}
-            </p>
-          ))}
+          {g.phase === 'guess' && (
+            <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+              <h2><Search className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('imposterCaughtTitle')}</h2>
+              <p className="text-sm text-muted">
+                {t('imposterAccusedLabel')}: <b>{g.accused}</b>
+              </p>
+              {g.youAreImposter ? (
+                <>
+                  <p className="mt-3 font-medium">{t('imposterGuessTitle')}</p>
+                  <Input
+                    type="text"
+                    maxLength={100}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    placeholder={t('guessInputPlaceholder')}
+                    value={guessText}
+                    onChange={(e) => setGuessText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendGuess()}
+                  />
+                  <Button className="w-full" onClick={sendGuess} isDisabled={busy || !guessText.trim()}>
+                    {t('guessBtn')}
+                  </Button>
+                  {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
+                </>
+              ) : (
+                <StatusBanner className="mt-3">{t('imposterGuessWait')}</StatusBanner>
+              )}
+            </div>
+          )}
         </div>
-        <div className="mt-3 flex gap-2">
-          <Input
-            type="text"
-            maxLength={100}
-            autoComplete="off"
-            placeholder={t('chatPlaceholder')}
-            value={chatText}
-            onChange={(event) => setChatText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                sendChat();
-              }
-            }}
-          />
-          <Button className="shrink-0" onClick={sendChat} isDisabled={busy || !chatText.trim()}>
-            {t('chatSend')}
-          </Button>
-        </div>
-      </section>
+
+        <ChatPanel
+          messages={g.chat}
+          busy={busy}
+          onSend={sendChat}
+          className="lg:order-1 lg:sticky lg:top-[4.5rem]"
+          feedClassName="lg:max-h-[calc(100vh-15rem)]"
+        />
+      </div>
     </>
   );
 }

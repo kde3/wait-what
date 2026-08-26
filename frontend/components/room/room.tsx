@@ -56,6 +56,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
 
   const o = state.options;
   const mode = state.mode;
+  const enoughPlayers = state.players.length >= (state.minPlayers ?? 1);
   const showTeamToggle = ['speed', 'coop'].includes(mode);
 
   const secondsItems = (values: number[]) =>
@@ -204,9 +205,16 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
 
         <Card className="p-5">
         {isHost ? (
-          <Button className="w-full" onClick={start} isDisabled={busy}>
-            {t('startGame')}
-          </Button>
+          <>
+            <Button className="w-full" onClick={start} isDisabled={busy || !enoughPlayers}>
+              {t('startGame')}
+            </Button>
+            {!enoughPlayers && (
+              <p className="mt-2 text-center text-sm text-muted">
+                {t('minPlayersHint')} ({state.players.length}/{state.minPlayers})
+              </p>
+            )}
+          </>
         ) : (
           <p className="text-center text-sm text-muted">{t('waitingHost')}</p>
         )}

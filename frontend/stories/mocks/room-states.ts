@@ -26,6 +26,7 @@ export const roomState: RoomState = {
   mode: 'classic',
   teamGame: false,
   maxPlayers: 12,
+  minPlayers: 1,
   options: {
     difficulty: 'normal',
     textSeconds: 45,

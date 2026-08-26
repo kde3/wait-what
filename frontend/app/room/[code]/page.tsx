@@ -29,9 +29,8 @@ export default function Room({ params }: any) {
   const prevStatusRef = useRef('');
 
   useEffect(() => {
-    setPlayerId(sessionStorage.getItem(`gp_player_${code}`));
-    window.localStorage.removeItem('gp_nickname');
-    setNickname(window.sessionStorage.getItem('gp_nickname') ?? '');
+    setPlayerId(sessionStorage.getItem(`ww_player_${code}`));
+    setNickname(window.sessionStorage.getItem('ww_nickname') ?? '');
     setCheckedStorage(true);
   }, [code]);
 
@@ -115,13 +114,13 @@ export default function Room({ params }: any) {
     const cleanNickname = nicknameValue.trim();
     if (!cleanNickname) return setError(t('errNickname'));
     setNickname(cleanNickname);
-    window.sessionStorage.setItem('gp_nickname', cleanNickname);
+    window.sessionStorage.setItem('ww_nickname', cleanNickname);
     // 비번방인데 아직 비밀번호를 안 받았으면 입장을 시도하지 않는다.
     // 그냥 보내면 "비밀번호가 틀렸다"만 뜨고 입력할 자리가 없다.
     if (needsPassword && !password) return;
     const data = await api('join', { nickname: cleanNickname, password });
     if (data) {
-      sessionStorage.setItem(`gp_player_${code}`, data.playerId);
+      sessionStorage.setItem(`ww_player_${code}`, data.playerId);
       setPlayerId(data.playerId);
       sfx.pop();
     }
@@ -133,7 +132,7 @@ export default function Room({ params }: any) {
 
   if (gone || disconnected || dropped) {
     const goHome = () => {
-      if (dropped) sessionStorage.removeItem(`gp_player_${code}`);
+      if (dropped) sessionStorage.removeItem(`ww_player_${code}`);
       router.push('/');
     };
     const reason = gone ? 'gone' : disconnected ? 'disconnected' : 'dropped';
@@ -195,7 +194,7 @@ export default function Room({ params }: any) {
       live={live}
       onBack={() => router.push('/')}
       onLeave={() => {
-        sessionStorage.removeItem(`gp_player_${code}`);
+        sessionStorage.removeItem(`ww_player_${code}`);
         router.push('/');
       }}
       onStarted={fetchState}

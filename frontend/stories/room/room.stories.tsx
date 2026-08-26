@@ -21,3 +21,13 @@ type Story = StoryObj<typeof meta>;
 export const Lobby: Story = {};
 export const TeamLobby: Story = { args: { state: teamRoomState } };
 export const ChaosSelected: Story = { args: { state: chaosRoomState } };
+export const NotEnoughPlayers: Story = {
+  args: {
+    state: {
+      ...roomState,
+      mode: 'imposter',
+      minPlayers: 3,
+      players: roomState.players.slice(0, 2),
+    },
+  },
+};
