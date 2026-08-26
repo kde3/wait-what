@@ -642,6 +642,21 @@ describe('imposter', () => {
     expect(g.entries[0]).toMatchObject({ playerId: first, url: null, skipped: true });
   });
 
+  it('차례 중 한 번이라도 생성했으면 타임아웃 시 마지막 이미지를 사용한다', () => {
+    const { room } = imposterRoom();
+    const g = room.game;
+    const first = g.order[0];
+    applyDraft(room, first, '첫 번째 프롬프트', 'url-first');
+    applyDraft(room, first, '마지막 프롬프트', 'url-last');
+    timeout(room);
+    expect(g.entries[0]).toMatchObject({
+      playerId: first,
+      url: 'url-last',
+      prompt: '마지막 프롬프트',
+      skipped: false,
+    });
+  });
+
   it('전원 차례가 끝나면 vote phase가 되고 아직 추리할 수 없다', () => {
     const { room } = imposterRoom();
     const g = room.game;

@@ -351,10 +351,11 @@ function configureChaosRound(room, g, startsAt = now()) {
   if (g.chaosCharacterId === 'null' && g.round > 0) {
     for (const player of room.players) g.activeChaosByPlayer.set(player.id, randomActiveChaosCharacterId());
   }
-  g.playerEndsAt = new Map(
-    room.players.map((player) => [player.id, startsAt + classicRoundSeconds(room, g, player.id) * 1000]),
+  const playerEndsAt = new Map<string, number>(
+    room.players.map((player) => [player.id, startsAt + classicRoundSeconds(room, g, player.id) * 1000] as [string, number]),
   );
-  g.endsAt = Math.max(...Array.from(g.playerEndsAt.values()));
+  g.playerEndsAt = playerEndsAt;
+  g.endsAt = Math.max(...playerEndsAt.values());
 }
 
 export function classicRoundType(round) {
@@ -683,7 +684,13 @@ function advImposter(room) {
   }
   if (g.phase === 'turns' && (!present(room, g.order[g.turn]) || now() >= g.endsAt)) {
     const pid = g.order[g.turn];
-    g.entries.push({ playerId: pid, nickname: nicknameOf(room, pid), url: null, prompt: null, skipped: true });
+    g.entries.push({
+      playerId: pid,
+      nickname: nicknameOf(room, pid),
+      url: g.draftUrl ?? null,
+      prompt: g.draftPrompt ?? null,
+      skipped: !g.draftUrl,
+    });
     imposterNextTurn(room, g);
   } else if (g.phase === 'vote' && (now() >= g.endsAt || imposterVoteComplete(room, g))) {
     imposterCloseVote(room, g);

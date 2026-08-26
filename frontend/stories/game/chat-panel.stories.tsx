@@ -20,6 +20,9 @@ type Story = StoryObj<typeof meta>;
 export const WithMessages: Story = {};
 export const Empty: Story = { args: { messages: [] } };
 export const Busy: Story = { args: { busy: true } };
+export const Narrow: Story = {
+  decorators: [(Story) => <div className="w-64"><Story /></div>],
+};
 export const LongThread: Story = {
   args: {
     messages: Array.from({ length: 12 }, (_, i) => ({

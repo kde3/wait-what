@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createServer as createHttpServer } from 'node:http';
 import { WebSocket } from 'ws';
 import { createGameServer } from '../app';
 import { cancelLeave, RECONNECT_GRACE_MS } from '../lib/realtime';
@@ -291,6 +292,63 @@ describe('config / start / submit / guess', () => {
 });
 
 describe('이미지', () => {
+  it('생성 응답 전에 턴이 끝나면 늦게 도착한 이미지를 적용하지 않는다', async () => {
+    let releaseResponse: (() => void) | undefined;
+    let markRequested: (() => void) | undefined;
+    const requested = new Promise<void>((resolve) => { markRequested = resolve; });
+    const upstream = createHttpServer((req, res) => {
+      req.resume();
+      req.on('end', () => {
+        markRequested?.();
+        releaseResponse = () => {
+          res.writeHead(200, { 'Content-Type': 'image/png' });
+          res.end(Buffer.from('late-image'));
+        };
+      });
+    });
+    await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+
+    const previous = {
+      url: process.env.AI_SERVER_URL,
+      key: process.env.AI_SERVER_KEY,
+      secret: process.env.AI_SERVER_SECRET,
+    };
+    const address = upstream.address();
+    process.env.AI_SERVER_URL = `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}`;
+    process.env.AI_SERVER_KEY = 'test-key';
+    process.env.AI_SERVER_SECRET = 'test-secret';
+
+    try {
+      const host = await createRoomHttp();
+      const guest1 = await joinHttp(host.code, '손님1');
+      const guest2 = await joinHttp(host.code, '손님2');
+      await post(`/rooms/${host.code}/config`, { playerId: host.playerId, patch: { mode: 'imposter' } });
+      await post(`/rooms/${host.code}/start`, { playerId: host.playerId });
+      const room = getRoom(host.code);
+      const currentPlayerId = room.game.order[room.game.turn];
+
+      const pending = post(`/rooms/${host.code}/generate`, { playerId: currentPlayerId, prompt: '느린 생성' });
+      await requested;
+      room.game.endsAt = Date.now() - 1;
+      releaseResponse?.();
+
+      const generated = await pending;
+      expect(generated.status).toBe(409);
+      expect(room.game.entries[0]).toMatchObject({ playerId: currentPlayerId, url: null, skipped: true });
+      expect(room.game.draftUrl).toBeNull();
+      expect(guest1.data.playerId).toBeTruthy();
+      expect(guest2.data.playerId).toBeTruthy();
+    } finally {
+      if (previous.url === undefined) delete process.env.AI_SERVER_URL;
+      else process.env.AI_SERVER_URL = previous.url;
+      if (previous.key === undefined) delete process.env.AI_SERVER_KEY;
+      else process.env.AI_SERVER_KEY = previous.key;
+      if (previous.secret === undefined) delete process.env.AI_SERVER_SECRET;
+      else process.env.AI_SERVER_SECRET = previous.secret;
+      await new Promise<void>((resolve) => upstream.close(() => resolve()));
+    }
+  });
+
   it('AI env가 없으면 mock-image URL이 나오고 SVG가 서빙된다', async () => {
     const host = await createRoomHttp();
     await post(`/rooms/${host.code}/config`, { playerId: host.playerId, patch: { mode: 'coop' } });
