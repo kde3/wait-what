@@ -109,6 +109,7 @@ export const dict = {
   difficultyEasy: 'Fácil',
   optTextSeconds: 'Tiempo de texto/respuesta',
   optImageSeconds: 'Tiempo de dibujo',
+  optSpeedSeconds: 'Tiempo de generación y respuesta',
   optRounds: 'Rondas',
   optBannedWords: 'Penalización: palabras prohibidas',
   bannedWordsPlaceholder: 'Separadas por comas (ej: bonito, cute)',

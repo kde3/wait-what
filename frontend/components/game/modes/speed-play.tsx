@@ -21,8 +21,7 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
   const { prompt, setPrompt, imageUrl, setImageUrl } = useDraft(g.draft, `${g.round}`);
   const { generating, generate, cancelGenerate } = useGenerate(api, playerId, setImageUrl);
   const remaining = useCountdown(g.remaining, `${g.round}:${g.phase}`);
-  const totalSecs =
-    g.phase === 'draw' ? state.options.imageSeconds : g.phase === 'guess' ? state.options.textSeconds : 6;
+  const totalSecs = g.phase === 'reveal' ? 6 : state.options.speedSeconds;
 
   async function onGuess(text) {
     const data = await api('guess', { playerId, text });
@@ -62,9 +61,6 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
               busy={busy}
               onGenerate={() => generate(prompt)}
               onCancelGenerate={cancelGenerate}
-              onSubmit={async () => {
-                if (await api('submit', { playerId })) sfx.submit();
-              }}
             />
           ) : (
             <>
@@ -76,22 +72,20 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
         </div>
       ) : (
         <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+          <h2>{t('speedGuessTitle')}</h2>
           {g.phase === 'draw' ? (
             g.liveImage ? (
-              <img className="w-full rounded-lg border object-cover" src={apiUrl(g.liveImage)} alt="AI" />
+              <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(g.liveImage)} alt="AI" draggable={false} />
             ) : (
               <div className="py-8 text-center text-sm text-muted">
                 <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
                 {t('speedWaitingDrawer')}
               </div>
             )
-          ) : (
-            <>
-              <h2>{t('speedGuessTitle')}</h2>
-              {g.image && <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" draggable={false} />}
-              <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
-            </>
-          )}
+          ) : g.image ? (
+            <img className="w-full select-none rounded-lg border object-cover" src={apiUrl(g.image)} alt="AI" draggable={false} />
+          ) : null}
+          <GuessPanel guesses={g.guesses} onGuess={onGuess} busy={busy} />
           {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
         </div>
       )}

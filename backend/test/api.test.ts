@@ -243,7 +243,7 @@ describe('config / start / submit / guess', () => {
     expect(room.status).toBe('finished');
   });
 
-  it('speed 한 라운드: 금지어 → 생성 → 제출 → 정답', async () => {
+  it('speed 한 라운드: 생성 전 추측 → 생성과 자동 제출 → 정답', async () => {
     const host = await createRoomHttp();
     const guest = await joinHttp(host.code, '손님');
     await post(`/rooms/${host.code}/config`, { playerId: host.playerId, patch: { mode: 'speed' } });
@@ -270,16 +270,17 @@ describe('config / start / submit / guess', () => {
     expect(banned.status).toBe(400);
     expect(banned.data.error).toBe('errBannedWord');
 
+    const earlyWrong = await post(`/rooms/${host.code}/guess`, { playerId: guesserId, text: '완전 오답' });
+    expect(earlyWrong.status).toBe(200);
+    expect(earlyWrong.data.correct).toBe(false);
+
     const generated = await post(`/rooms/${host.code}/generate`, { playerId: drawerId, prompt: '평화로운 초원 풍경' });
     expect(generated.status).toBe(200);
     expect(generated.data.url).toMatch(/^\/api\/mock-image\?/);
 
-    const submitted = await post(`/rooms/${host.code}/submit`, { playerId: drawerId });
-    expect(submitted.status).toBe(200);
-
-    const wrong = await post(`/rooms/${host.code}/guess`, { playerId: guesserId, text: '완전 오답' });
-    expect(wrong.status).toBe(200);
-    expect(wrong.data.correct).toBe(false);
+    const stateAfterGeneration = await get(`/rooms/${host.code}/state?playerId=${guesserId}`);
+    expect(stateAfterGeneration.data.game.phase).toBe('guess');
+    expect(stateAfterGeneration.data.game.image).toBe(generated.data.url);
 
     const correct = await post(`/rooms/${host.code}/guess`, { playerId: guesserId, text: keyword.en });
     expect(correct.status).toBe(200);

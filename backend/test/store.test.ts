@@ -380,7 +380,7 @@ describe('speed', () => {
     return { room, ids };
   }
 
-  it('draw → submit → guess 순으로 진행된다', () => {
+  it('생성 전부터 정답을 시도할 수 있고 이미지 확정 시 타이머가 초기화되지 않는다', () => {
     const { room, ids } = speedRoom();
     const g = room.game;
     expect(g.phase).toBe('draw');
@@ -388,11 +388,14 @@ describe('speed', () => {
     const guesser = ids.find((id) => id !== drawer);
     expect(canGenerate(room, guesser).error).toBe('errNotYourTurn');
     expect(canGenerate(room, drawer).keyword).toBe(g.keyword);
+    expect(guessAction(room, guesser, '완전 오답')).toEqual({ correct: false });
     expect(submitAction(room, drawer, {}).error).toBe('errGenerateFirst');
+    const endsAt = g.endsAt;
     applyDraft(room, drawer, '그림', '/api/mock-image?s=1');
     expect(submitAction(room, drawer, {})).toEqual({});
     expect(g.phase).toBe('guess');
     expect(g.image).toBe('/api/mock-image?s=1');
+    expect(g.endsAt).toBe(endsAt);
   });
 
   it('정답을 맞히면 개인전에서는 맞힌 사람과 그린 사람이 각각 +1', () => {
@@ -498,11 +501,11 @@ describe('speed_team', () => {
     expect(room.players.find((p) => p.id === g.drawers[1]).team).toBe(1);
   });
 
-  it('자기 팀 이미지가 없으면 guess할 수 없다', () => {
+  it('자기 팀 이미지가 없어도 guess할 수 있다', () => {
     const { room } = teamRoom();
     const g = room.game;
     const guesser = room.players.find((p) => p.team === 0 && p.id !== g.drawers[0]).id;
-    expect(guessAction(room, guesser, g.keyword.ko).error).toBe('errWaitTeamImage');
+    expect(guessAction(room, guesser, '완전 오답')).toEqual({ correct: false });
   });
 
   it('drawer가 제출하면 팀 이미지가 확정되고 정답 시 teamScores가 오른다', () => {

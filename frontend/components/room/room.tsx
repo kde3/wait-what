@@ -119,7 +119,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
               onChange={(value) => setOption('difficulty', value)}
             />
           </label>
-          <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+          {!['speed', 'speed_team'].includes(mode) && <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
             <span>{t('optTextSeconds')}</span>
             <OptionSelect
               className="w-24"
@@ -129,8 +129,21 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
               isDisabled={!isHost}
               onChange={(value) => setOption('textSeconds', Number(value))}
             />
-          </label>
-          <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+          </label>}
+          {['speed', 'speed_team'].includes(mode) && (
+            <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+              <span>{t('optSpeedSeconds')}</span>
+              <OptionSelect
+                className="w-24"
+                aria-label={t('optSpeedSeconds')}
+                value={String(o.speedSeconds)}
+                items={secondsItems([60, 90, 120, 180, 240])}
+                isDisabled={!isHost}
+                onChange={(value) => setOption('speedSeconds', Number(value))}
+              />
+            </label>
+          )}
+          {!['speed', 'speed_team'].includes(mode) && <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
             <span>{t('optImageSeconds')}</span>
             <OptionSelect
               className="w-24"
@@ -140,7 +153,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
               isDisabled={!isHost}
               onChange={(value) => setOption('imageSeconds', Number(value))}
             />
-          </label>
+          </label>}
           {['speed', 'speed_team'].includes(mode) && (
             <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
               <span>{t('optRounds')}</span>

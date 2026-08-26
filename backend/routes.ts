@@ -170,6 +170,10 @@ apiRouter.post('/rooms/:code/generate', async (req, res) => {
   }
 
   applyDraft(room, playerId, prompt, url);
+  if (room.mode === 'speed' || room.mode === 'speed_team') {
+    const submitted = submitAction(room, playerId);
+    if (submitted.error) return res.status(409).json({ error: submitted.error });
+  }
   touch(req.params.code);
   res.json({ url });
 });

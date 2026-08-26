@@ -27,6 +27,7 @@ export const DEFAULT_OPTIONS = {
   difficulty: 'normal',
   textSeconds: 45, // 제시어 작성/맞히기 제한시간
   imageSeconds: 90, // 그림(프롬프트+생성) 제한시간
+  speedSeconds: 120, // 스피드 퀴즈 생성+맞히기 통합 제한시간
   rounds: 5, // 스피드 퀴즈 라운드 수
   teamMode: false, // 개인전/팀전 (speed, coop)
   fixedDrawer: false, // 스피드 퀴즈: 돌아가며 그리지 않고 한 명이 계속 그림
@@ -221,6 +222,7 @@ export function configRoom(room, playerId, patch: Record<string, any> = {}) {
     if (o.difficulty !== undefined && DIFFICULTIES.includes(o.difficulty)) opt.difficulty = o.difficulty;
     if (o.textSeconds !== undefined) opt.textSeconds = clampInt(o.textSeconds, 15, 300, opt.textSeconds);
     if (o.imageSeconds !== undefined) opt.imageSeconds = clampInt(o.imageSeconds, 30, 600, opt.imageSeconds);
+    if (o.speedSeconds !== undefined) opt.speedSeconds = clampInt(o.speedSeconds, 30, 600, opt.speedSeconds);
     if (o.rounds !== undefined) opt.rounds = clampInt(o.rounds, 1, 20, opt.rounds);
     if (o.teamMode !== undefined) opt.teamMode = !!o.teamMode;
     if (o.fixedDrawer !== undefined) opt.fixedDrawer = !!o.fixedDrawer;
@@ -450,7 +452,7 @@ function speedNewRound(room, g) {
   g.image = null;
   g.guesses = [];
   g.winnerId = null;
-  g.endsAt = now() + room.options.imageSeconds * 1000;
+  g.endsAt = now() + room.options.speedSeconds * 1000;
 }
 
 function speedFinishRound(room, g, winnerId) {
@@ -479,15 +481,7 @@ function speedFinishRound(room, g, winnerId) {
 
 function advSpeed(room) {
   const g = room.game;
-  if (g.phase === 'draw' && now() >= g.endsAt) {
-    if (g.draftUrl) {
-      g.image = g.draftUrl;
-      g.phase = 'guess';
-      g.endsAt = now() + room.options.textSeconds * 1000;
-    } else {
-      speedFinishRound(room, g, null);
-    }
-  } else if (g.phase === 'guess' && now() >= g.endsAt) {
+  if ((g.phase === 'draw' || g.phase === 'guess') && now() >= g.endsAt) {
     speedFinishRound(room, g, null);
   } else if (g.phase === 'reveal' && now() >= g.endsAt) {
     g.round += 1;
@@ -521,7 +515,7 @@ function speedTeamNewRound(room, g) {
   g.winnerTeam = null;
   g.winnerId = null;
   g.phase = 'play'; // play | reveal
-  g.endsAt = now() + (room.options.imageSeconds + room.options.textSeconds) * 1000;
+  g.endsAt = now() + room.options.speedSeconds * 1000;
 }
 
 function speedTeamFinishRound(room, g, winnerId) {
@@ -836,7 +830,6 @@ export function submitAction(room, playerId, { text }: Record<string, any> = {})
       if (!g.draftUrl) return { error: 'errGenerateFirst' };
       g.image = g.draftUrl;
       g.phase = 'guess';
-      g.endsAt = now() + room.options.textSeconds * 1000;
       return {};
     }
     case 'speed_team': {
@@ -894,7 +887,7 @@ export function guessAction(room, playerId, text) {
 
   switch (room.mode) {
     case 'speed': {
-      if (g.phase !== 'guess') return { error: 'errNotGuessPhase' };
+      if (g.phase !== 'draw' && g.phase !== 'guess') return { error: 'errNotGuessPhase' };
       if (g.drawerId === playerId) return { error: 'errDrawerCannotGuess' };
       const correct = wordMatches(g.keyword, t);
       g.guesses.push({ nickname: player.nickname, team: player.team, text: t, correct });
@@ -905,7 +898,6 @@ export function guessAction(room, playerId, text) {
       if (g.phase !== 'play') return { error: 'errNotGuessPhase' };
       const team = player.team;
       if (g.drawers[team] === playerId) return { error: 'errDrawerCannotGuess' };
-      if (!g.teams[team].image) return { error: 'errWaitTeamImage' };
       const correct = wordMatches(g.keyword, t);
       g.guesses.push({ nickname: player.nickname, team, text: t, correct });
       if (correct) speedTeamFinishRound(room, g, playerId);
