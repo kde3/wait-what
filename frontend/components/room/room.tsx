@@ -64,9 +64,9 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
   const roundItems = (values: number[]) =>
     values.map((value) => ({ id: String(value), label: String(value) }));
   const difficultyItems = [
+    { id: 'easy', label: t('difficultyEasy') },
     { id: 'normal', label: t('difficultyNormal') },
     { id: 'hard', label: t('difficultyHard') },
-    { id: 'hell', label: t('difficultyHell') },
   ];
   // 참가자를 인덱스로 고르는 선택기 — playerId는 인증 토큰이라 노출하지 않는다.
   const playerItems = state.players.map((p, i) => ({ id: String(i), label: p.nickname }));

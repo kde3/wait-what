@@ -56,14 +56,14 @@ describe('generateImage', () => {
         res.end(png);
       });
     };
-    const result = await generateImage('귀여운 고양이');
+    const result = await generateImage('귀여운 고양이', 'hard');
     expect(Buffer.isBuffer(result)).toBe(true);
     expect(result.equals(png)).toBe(true);
     expect(seen.method).toBe('POST');
     expect(seen.url).toBe('/generate');
     expect(seen.headers['cf-access-client-id']).toBe('test-key');
     expect(seen.headers['cf-access-client-secret']).toBe('test-secret');
-    expect(JSON.parse(seen.body)).toEqual({ prompt: '귀여운 고양이' });
+    expect(JSON.parse(seen.body)).toEqual({ prompt: '귀여운 고양이', difficulty: 'hard' });
   });
 
   it.each([

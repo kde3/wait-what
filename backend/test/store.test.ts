@@ -138,10 +138,10 @@ describe('configRoom', () => {
 
   it('난이도는 목록에 있는 값만 반영한다', () => {
     const { room, ids } = makeRoom();
-    configRoom(room, ids[0], { options: { difficulty: 'hell' } });
-    expect(room.options.difficulty).toBe('hell');
+    configRoom(room, ids[0], { options: { difficulty: 'easy' } });
+    expect(room.options.difficulty).toBe('easy');
     configRoom(room, ids[0], { options: { difficulty: 'impossible' } });
-    expect(room.options.difficulty).toBe('hell');
+    expect(room.options.difficulty).toBe('easy');
   });
 
   it('시작 후에는 errAlreadyStarted', () => {

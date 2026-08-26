@@ -3,9 +3,9 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { OptionSelect } from '../../components/ui/option-select';
 
 const DIFFICULTIES = [
+  { id: 'easy', label: '쉬움' },
   { id: 'normal', label: '보통' },
   { id: 'hard', label: '어려움' },
-  { id: 'hell', label: '헬' },
 ];
 
 const SECONDS = [20, 30, 45, 60, 90, 120].map((value) => ({ id: String(value), label: `${value}초` }));
