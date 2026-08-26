@@ -23,12 +23,19 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
   const { generating, generate, cancelGenerate } = useGenerate(api, playerId, setImageUrl);
   const remaining = useCountdown(g.remaining, `${g.phase}:${g.turnIndex}`);
   const [guessText, setGuessText] = useState('');
+  const [chatText, setChatText] = useState('');
   const totalSecs = g.phase === 'turns' ? state.options.imageSeconds : state.options.textSeconds;
 
   async function sendGuess() {
     if (!guessText.trim()) return;
     const data = await api('guess', { playerId, text: guessText });
     if (data) (data.correct ? sfx.correct : sfx.wrong)();
+  }
+
+  async function sendChat() {
+    const text = chatText.trim();
+    if (!text) return;
+    if (await api('chat', { playerId, text })) setChatText('');
   }
 
   return (
@@ -119,6 +126,36 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
             {t('imposterGuessWait')}
           </div>
         ))}
+
+      <section className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+        <h2>{t('chatTitle')}</h2>
+        <div className="mt-3 flex max-h-44 min-h-24 flex-col justify-end gap-2 overflow-y-auto rounded-lg bg-surface-secondary p-3 text-sm">
+          {g.chat?.map((message, index) => (
+            <p key={`${message.createdAt}-${index}`} className="break-words">
+              <b>{message.nickname}</b>: {message.text}
+            </p>
+          ))}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Input
+            type="text"
+            maxLength={100}
+            autoComplete="off"
+            placeholder={t('chatPlaceholder')}
+            value={chatText}
+            onChange={(event) => setChatText(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                sendChat();
+              }
+            }}
+          />
+          <Button className="shrink-0" onClick={sendChat} isDisabled={busy || !chatText.trim()}>
+            {t('chatSend')}
+          </Button>
+        </div>
+      </section>
     </>
   );
 }

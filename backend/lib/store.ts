@@ -170,8 +170,11 @@ export function removePlayer(room, playerId) {
   const index = room.players.findIndex((p) => p.id === playerId);
   if (index < 0) return false;
   const [removed] = room.players.splice(index, 1);
+  if (room.status === 'playing' && room.game) {
+    const leftPlayers = room.game.leftPlayers ?? (room.game.leftPlayers = []);
+    if (!leftPlayers.includes(removed.nickname)) leftPlayers.push(removed.nickname);
+  }
   if (removed.isHost && room.players.length) room.players[0].isHost = true;
-  if (room.status === 'finished' && room.players.length && room.players.every((p) => p.staying)) backToLobby(room);
   return true;
 }
 
@@ -267,6 +270,7 @@ export function startGame(room, playerId) {
 
   const init = { classic: initClassic, speed: initSpeed, speed_team: initSpeedTeam, coop: initCoop, chaos: initChaos, imposter: initImposter };
   room.game = init[room.mode](room);
+  room.game.leftPlayers = [];
   room.status = 'playing';
   return {};
 }
@@ -274,9 +278,9 @@ export function startGame(room, playerId) {
 export function stayInRoom(room, playerId) {
   const player = room.players.find((p) => p.id === playerId);
   if (!player) return { error: 'errNotPlayer' };
+  if (!player.isHost) return { error: 'errHostOnly' };
   if (room.status !== 'finished') return {};
-  player.staying = true;
-  if (room.players.every((p) => p.staying)) backToLobby(room);
+  backToLobby(room);
   return {};
 }
 
@@ -560,7 +564,21 @@ function initImposter(room) {
     endsAt: now() + room.options.imageSeconds * 1000,
     guess: null,
     won: null,
+    chat: [],
   };
+}
+
+export function chatAction(room, playerId, text) {
+  if (room.status !== 'playing') return { error: 'errNotPlaying' };
+  if (room.mode !== 'imposter') return { error: 'errBadMode' };
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) return { error: 'errNotPlayer' };
+  const message = String(text ?? '').trim().slice(0, 100);
+  if (!message) return { error: 'errEmptyText' };
+  const chat = room.game.chat ?? (room.game.chat = []);
+  chat.push({ nickname: player.nickname, text: message, createdAt: now() });
+  if (chat.length > 30) chat.splice(0, chat.length - 30);
+  return {};
 }
 
 function imposterNextTurn(room, g) {

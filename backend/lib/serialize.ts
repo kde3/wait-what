@@ -148,6 +148,7 @@ function buildGameView(room, you) {
         youAreCurrent: curId === you.id,
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, skipped: e.skipped })),
         draft: curId === you.id ? { prompt: g.draftPrompt, url: g.draftUrl } : null,
+        chat: (g.chat ?? []).map((message) => ({ nickname: message.nickname, text: message.text, createdAt: message.createdAt })),
       };
     }
   }
@@ -157,19 +158,20 @@ function buildGameView(room, you) {
 function buildResults(room, you) {
   const g = room.game;
   if (!g) return null;
+  const withLeftPlayers = (result) => ({ ...result, leftPlayers: g.leftPlayers ?? [] });
   switch (room.mode) {
     case 'classic':
     case 'chaos':
-      return {
+      return withLeftPlayers({
         kind: room.mode,
         chaosCharacterId: room.mode === 'chaos' ? g.chaosCharacterId : null,
         albums: g.chains.map((chain, j) => ({
           owner: nicknameOf(room, g.order[j]),
           entries: chain.map((e) => ({ type: e.type, text: e.text, prompt: e.prompt, url: e.url, author: e.authorNickname })),
         })),
-      };
+      });
     case 'speed':
-      return {
+      return withLeftPlayers({
         kind: 'speed',
         teamMode: room.options.teamMode,
         teamScores: room.options.teamMode ? g.teamScores : null,
@@ -177,15 +179,15 @@ function buildResults(room, you) {
           .map((p) => ({ nickname: p.nickname, score: p.score, team: p.team }))
           .sort((a, b) => b.score - a.score),
         history: g.history,
-      };
+      });
     case 'speed_team':
-      return {
+      return withLeftPlayers({
         kind: 'speed_team',
         teamScores: g.teamScores,
         history: g.history,
-      };
+      });
     case 'coop':
-      return {
+      return withLeftPlayers({
         kind: 'coop',
         theme: g.theme,
         scored: room.options.scored,
@@ -200,16 +202,16 @@ function buildResults(room, you) {
             return { nickname: nicknameOf(room, id), url: s?.url ?? null, prompt: s?.prompt ?? null };
           }),
         })),
-      };
+      });
     case 'imposter':
-      return {
+      return withLeftPlayers({
         kind: 'imposter',
         keyword: g.keyword,
         imposter: nicknameOf(room, g.imposterId),
         guess: g.guess,
         won: g.won,
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, prompt: e.prompt, skipped: e.skipped })),
-      };
+      });
   }
   return null;
 }
