@@ -3,23 +3,18 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { sfx } from '../../lib/sound';
-import { MODE_LABEL_KEY } from '../../lib/modes';
+import { MODE_LABEL_KEY, VISIBLE_MODES } from '../../lib/modes';
 import { Card } from '@heroui/react';
 import { Button } from '../ui/button';
 import { OptionSelect } from '../ui/option-select';
 import { Switch } from '../ui/switch';
 import { ModeButton } from './mode-button';
-import { Eye, Flag, Phone, UserPlus, Users, Zap } from 'pixelarticons/react';
+import { Bug, Eye, Phone, UserPlus, Zap } from 'pixelarticons/react';
 import { ParticipantList } from './participant-list';
 import { InviteModal } from './invite-modal';
 
-const MODE_META = [
-  { id: 'classic', Icon: Phone, min: 2 },
-  { id: 'speed', Icon: Zap, min: 2 },
-  { id: 'speed_team', Icon: Flag, min: 2 },
-  { id: 'coop', Icon: Users, min: 2 },
-  { id: 'imposter', Icon: Eye, min: 3 },
-];
+const MODE_ICONS = { classic: Phone, speed: Zap, chaos: Bug, imposter: Eye };
+const MODE_META = VISIBLE_MODES.map((id) => ({ id, Icon: MODE_ICONS[id] }));
 
 export default function Room({ state, playerId, api, busy, error, onStarted }) {
   const { t } = useI18n();
@@ -95,7 +90,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
       <div className="min-w-0 space-y-4">
         <Card className="p-5">
         <h2>{t('modeTitle')}</h2>
-        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
           {MODE_META.map((m) => (
             <ModeButton
               key={m.id}
@@ -141,7 +136,7 @@ export default function Room({ state, playerId, api, busy, error, onStarted }) {
               className="w-24"
               aria-label={t('optImageSeconds')}
               value={String(o.imageSeconds)}
-              items={secondsItems([45, 60, 90, 120, 180, 240])}
+              items={secondsItems([30, 45, 60, 100])}
               isDisabled={!isHost}
               onChange={(value) => setOption('imageSeconds', Number(value))}
             />

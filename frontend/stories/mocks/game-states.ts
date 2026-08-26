@@ -24,6 +24,49 @@ export const classicSubmittedDrawingState: RoomState = {
   game: { ...classicGeneratedDrawingState.game, submitted: true },
 };
 
+const chaosBase = { ...roomState, mode: 'chaos' as const, status: 'playing' as const };
+
+export const chaosRevealState: RoomState = {
+  ...chaosBase,
+  game: {
+    ...classicPhraseState.game,
+    kind: 'chaos',
+    phase: 'reveal',
+    chaosCharacterId: '404',
+    revealRemaining: 4,
+  },
+};
+
+export const chaosPlayState: RoomState = {
+  ...chaosBase,
+  game: {
+    ...classicGeneratedDrawingState.game,
+    kind: 'chaos',
+    phase: 'play',
+    chaosCharacterId: 'glitch',
+    revealRemaining: null,
+  },
+};
+
+export const chaosResultState: RoomState = {
+  ...chaosBase,
+  status: 'finished',
+  results: {
+    kind: 'chaos',
+    chaosCharacterId: 'autocorrect',
+    albums: [
+      {
+        owner: '익명 방장',
+        entries: [
+          { type: 'text', author: '익명 방장', text: '우주복을 입은 고양이가 라면을 먹는 모습' },
+          { type: 'image', author: '그림 고양이', url: MOCK_IMAGE, prompt: '우주 고양이와 라면 그릇' },
+          { type: 'text', author: '초록 로봇', text: '달에서 야식을 먹는 고양이' },
+        ],
+      },
+    ],
+  },
+};
+
 const speedBase = { ...roomState, mode: 'speed' as const, status: 'playing' as const };
 
 export const speedDrawState: RoomState = {

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import Room from '../../components/room/room';
-import { roomState, teamRoomState } from '../mocks/room-states';
+import { chaosRoomState, roomState, teamRoomState } from '../mocks/room-states';
 
 const meta = {
   title: 'Room/Room',
@@ -20,6 +20,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Lobby: Story = {};
 export const TeamLobby: Story = { args: { state: teamRoomState } };
+export const ChaosSelected: Story = { args: { state: chaosRoomState } };
 export const NotEnoughPlayers: Story = {
   args: {
     state: {

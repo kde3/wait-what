@@ -6,6 +6,8 @@ import { useI18n } from '../i18n-provider';
 import { wordText } from '../../lib/words';
 import { sfx } from '../../lib/sound';
 import { Button } from '../ui/button';
+import { CHAOS_CHARACTER_BY_ID } from '../../lib/chaos';
+import { apiUrl } from '../../lib/backend-url';
 
 // 게임 결과 공유 텍스트 생성 (키워드/프롬프트 포함)
 function buildShareText(results, t, lang) {
@@ -13,6 +15,10 @@ function buildShareText(results, t, lang) {
   const url = typeof window !== 'undefined' ? window.location.href : '';
   switch (results.kind) {
     case 'classic':
+    case 'chaos':
+      if (results.kind === 'chaos' && results.chaosCharacterId) {
+        lines.push(`⚠️ ${t('chaosResultTitle')}: ${t(CHAOS_CHARACTER_BY_ID[results.chaosCharacterId].nameKey)}`);
+      }
       for (const album of results.albums) {
         lines.push('');
         lines.push(`📖 ${album.owner}${t('albumOf')}`);
@@ -55,6 +61,31 @@ function buildShareText(results, t, lang) {
   return lines.join('\n');
 }
 
+function representativeImageUrl(results) {
+  switch (results.kind) {
+    case 'classic':
+    case 'chaos':
+      return [...(results.albums?.[0]?.entries ?? [])].reverse().find((entry) => entry.type === 'image' && entry.url)?.url ?? null;
+    case 'speed':
+      return [...(results.history ?? [])].reverse().find((entry) => entry.url)?.url ?? null;
+    case 'imposter':
+      return [...(results.entries ?? [])].reverse().find((entry) => entry.url)?.url ?? null;
+    case 'speed_team':
+      for (const entry of [...(results.history ?? [])].reverse()) {
+        const url = [...(entry.urls ?? [])].reverse().find(Boolean);
+        if (url) return url;
+      }
+      return null;
+    case 'coop':
+      for (const group of [...(results.groups ?? [])].reverse()) {
+        const url = [...(group.cells ?? [])].reverse().find((cell) => cell.url)?.url;
+        if (url) return url;
+      }
+      return null;
+  }
+  return null;
+}
+
 export function ShareButton({ results }) {
   const { t, lang } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -62,6 +93,20 @@ export function ShareButton({ results }) {
   async function share() {
     const text = buildShareText(results, t, lang);
     sfx.pop();
+    const imageUrl = representativeImageUrl(results);
+    if (imageUrl) {
+      try {
+        const response = await fetch(apiUrl(imageUrl));
+        if (response.ok) {
+          const blob = await response.blob();
+          const file = new File([blob], 'wait-what-result.png', { type: blob.type || 'image/png' });
+          if (navigator.canShare?.({ files: [file] })) {
+            await navigator.share({ title: t('appName'), text, files: [file] });
+            return;
+          }
+        }
+      } catch {}
+    }
     if (navigator.share) {
       try {
         await navigator.share({ title: t('appName'), text });

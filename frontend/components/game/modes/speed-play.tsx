@@ -77,10 +77,14 @@ export function SpeedPlay({ state, playerId, api, busy, error }) {
       ) : (
         <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
           {g.phase === 'draw' ? (
-            <div className="py-8 text-center text-sm text-muted">
-              <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
-              {t('speedWaitingDrawer')}
-            </div>
+            g.liveImage ? (
+              <img className="w-full rounded-lg border object-cover" src={apiUrl(g.liveImage)} alt="AI" />
+            ) : (
+              <div className="py-8 text-center text-sm text-muted">
+                <Spinner className="mx-auto mb-3 block" aria-hidden="true" />
+                {t('speedWaitingDrawer')}
+              </div>
+            )
           ) : (
             <>
               <h2>{t('speedGuessTitle')}</h2>

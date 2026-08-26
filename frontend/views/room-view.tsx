@@ -8,6 +8,7 @@ import SpeedPlay from '../components/game/modes/speed-play';
 import SpeedTeamPlay from '../components/game/modes/speed-team-play';
 import CoopPlay from '../components/game/modes/coop-play';
 import ImposterPlay from '../components/game/modes/imposter-play';
+import ChaosPlay from '../components/game/modes/chaos-play';
 import { useI18n } from '../components/i18n-provider';
 import { StatusBanner } from '../components/ui/status-banner';
 import type { RoomApi } from '../types/api';
@@ -18,6 +19,7 @@ const PLAY_COMPONENTS = {
   speed: SpeedPlay,
   speed_team: SpeedTeamPlay,
   coop: CoopPlay,
+  chaos: ChaosPlay,
   imposter: ImposterPlay,
 };
 

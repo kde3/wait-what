@@ -1,32 +1,61 @@
 'use client';
 
 import { Article, BookOpen, Crown, Eye, Key, PartyPopper, Pencil, Star, Target, Trophy, Users } from 'pixelarticons/react';
+import { useState } from 'react';
 import { useI18n } from '../i18n-provider';
 import { aiComment } from '../../lib/i18n';
 import { wordText } from '../../lib/words';
 import { TeamBadge } from './team-badge';
 import { ShareButton } from './share-button';
 import { Button } from '../ui/button';
-import { StatusBanner } from '../ui/status-banner';
 import { apiUrl } from '../../lib/backend-url';
+import { CHAOS_CHARACTER_BY_ID, type ChaosCharacterId } from '../../lib/chaos';
+import { ChaosCharacter } from './chaos-character';
+import { ChaosAffectedImage } from './chaos-affected-image';
 
 export default function GameResults({ state, playerId, api, busy, onLeave }: any) {
   const { t, lang } = useI18n();
+  const [albumIndex, setAlbumIndex] = useState(0);
   const r = state.results;
   if (!r) return null;
+  const isRelayResult = r.kind === 'classic' || r.kind === 'chaos';
+  const currentAlbumIndex = isRelayResult ? Math.min(albumIndex, Math.max(0, r.albums.length - 1)) : 0;
+  const currentAlbum = isRelayResult ? r.albums[currentAlbumIndex] : null;
 
   return (
     <>
       <p className="text-center text-sm text-muted"><PartyPopper className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {t('resultsTitle')}</p>
 
-      {r.kind === 'classic' &&
-        r.albums.map((album, ai) => (
-          <div key={ai} className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
+      {r.leftPlayers?.length > 0 && (
+        <div className="rounded-xl border bg-surface-secondary px-4 py-3 text-sm text-muted">
+          {t('leftPlayers')}: {r.leftPlayers.join(', ')}
+        </div>
+      )}
+
+      {r.kind === 'chaos' && r.chaosCharacterId && (
+        <div className="rounded-2xl border bg-surface p-6 text-center shadow-sm">
+          <p className="mb-4 font-mono text-xs font-bold tracking-[0.18em] text-danger">{t('chaosResultTitle')}</p>
+          <ChaosCharacter character={r.chaosCharacterId as ChaosCharacterId} size="medium" state="failure" />
+        </div>
+      )}
+
+      {isRelayResult && currentAlbum && (
+        <>
+          <div className="flex items-center justify-between gap-3 rounded-xl border bg-surface p-3 text-sm font-medium text-foreground shadow-sm">
+            <Button variant="outline" className="h-8 w-auto px-3" onClick={() => setAlbumIndex((index) => index - 1)} isDisabled={currentAlbumIndex === 0}>
+              {t('previous')}
+            </Button>
+            <span>{currentAlbumIndex + 1} / {r.albums.length}</span>
+            <Button variant="outline" className="h-8 w-auto px-3" onClick={() => setAlbumIndex((index) => index + 1)} isDisabled={currentAlbumIndex === r.albums.length - 1}>
+              {t('next')}
+            </Button>
+          </div>
+          <div className="rounded-xl border bg-surface p-5 text-foreground shadow-sm">
             <h2>
-              <BookOpen className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {album.owner}
+              <BookOpen className="inline-block size-[1em] align-[-0.125em]" aria-hidden="true" /> {currentAlbum.owner}
               {t('albumOf')}
             </h2>
-            {album.entries.map((item, i) => (
+            {currentAlbum.entries.map((item, i) => (
               <div key={i} className="space-y-2 border-b py-4 last:border-0">
                 <div className="text-sm font-medium">
                   {item.author}
@@ -37,7 +66,17 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
                   <div className={i === 0 ? 'rounded-lg border border-accent/30 bg-accent/5 p-4' : 'rounded-lg bg-surface-secondary p-4'}>{item.text || t('emptyValue')}</div>
                 ) : item.url ? (
                   <>
-                    <img className="w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt="AI" />
+                    {r.kind === 'chaos' ? (
+                      <ChaosAffectedImage src={item.url} characterId={item.chaosCharacterId as ChaosCharacterId} />
+                    ) : (
+                      <img className="w-full rounded-lg border object-cover" src={apiUrl(item.url)} alt="AI" />
+                    )}
+                    {r.kind === 'chaos' && item.chaosCharacterId && (
+                      <span className="inline-flex rounded-full bg-surface-tertiary px-2 py-1 font-mono text-xs font-bold text-danger">
+                        {r.chaosCharacterId === 'null' ? 'NULL → ' : '⚠ '}
+                        {t(CHAOS_CHARACTER_BY_ID[item.chaosCharacterId as ChaosCharacterId].nameKey)}
+                      </span>
+                    )}
                     {item.prompt && (
                       <p className="text-sm text-muted">
                         {t('promptLabel')}: {item.prompt}
@@ -50,7 +89,8 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
               </div>
             ))}
           </div>
-        ))}
+        </>
+      )}
 
       {r.kind === 'speed' && (
         <>
@@ -219,25 +259,16 @@ export default function GameResults({ state, playerId, api, busy, onLeave }: any
       )}
 
       <ShareButton results={r} />
-      {state.you?.staying ? (
-        <StatusBanner className="mt-2 gap-3">
-          <span>
-            {t('stayingWait')} ({state.players.filter((p) => p.staying).length}/{state.players.length})
-          </span>
-          <Button variant="outline" className="h-7 w-auto px-2 text-xs" onClick={onLeave} isDisabled={busy}>
-            {t('leaveRoom')}
-          </Button>
-        </StatusBanner>
-      ) : (
-        <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex gap-2">
+        {state.you?.isHost && (
           <Button className="flex-1" onClick={() => api('restart', { playerId })} isDisabled={busy}>
-            {t('stayInRoom')} ({state.players.filter((p) => p.staying).length}/{state.players.length})
+            {t('playAgain')}
           </Button>
-          <Button variant="outline" className="flex-1" onClick={onLeave} isDisabled={busy}>
-            {t('leaveRoom')}
-          </Button>
-        </div>
-      )}
+        )}
+        <Button variant="outline" className="flex-1" onClick={onLeave} isDisabled={busy}>
+          {t('leaveRoom')}
+        </Button>
+      </div>
     </>
   );
 }

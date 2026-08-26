@@ -68,6 +68,7 @@
   --palette-control-surface: #fff0f8; --palette-control-hover: #ffe1f1; --palette-control-pressed: #f9cde5; --palette-control-tint: #e8fafc; --palette-control-active: #f72598; --palette-control-disabled: #f2f3f7; --palette-control-foreground: #080d2a;
   --palette-text-primary: #080d2a; --palette-text-secondary: #343954; --palette-text-muted: #7b819b; --palette-text-disabled: #b7bbcb;
   --palette-point: #ffd72e; --palette-point-strong: #ffc514; --palette-point-foreground: #6d4b00; --palette-rank-gold: #ffc514; --palette-rank-silver: #c5cbe0; --palette-rank-bronze: #e8935c; --palette-state-alert: #ff6b4a; --palette-state-success: #56d57b;
+  --palette-chaos-404: #ff6b4a; --palette-chaos-glitch: #9b6cff; --palette-chaos-pixel: #19dce5; --palette-chaos-filter: #f72598; --palette-chaos-autocorrect: #56d57b; --palette-chaos-null: #8f96b3;
 }
 
 .dark,
@@ -76,6 +77,7 @@
   --palette-border-subtle: #232842; --palette-border-soft: #2e3350; --palette-border-accent-soft: #5a2745;
   --palette-control-surface: #1e1330; --palette-control-hover: #2a1a3e; --palette-control-pressed: #351f4a; --palette-control-tint: #10262e; --palette-control-disabled: #1c2138; --palette-control-foreground: #f2f3f7;
   --palette-text-primary: #f2f3f7; --palette-text-secondary: #c5cbe0; --palette-text-muted: #8f96b3; --palette-text-disabled: #5c6483;
+  --palette-chaos-404: #ff8066; --palette-chaos-glitch: #b69aff; --palette-chaos-pixel: #45edf4; --palette-chaos-filter: #ff5fb3; --palette-chaos-autocorrect: #78e394; --palette-chaos-null: #b7bbcb;
 }
 
 /* 팔레트 -> HeroUI 테마 매핑.

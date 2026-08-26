@@ -3,6 +3,7 @@ import {
   advance,
   applyDraft,
   canGenerate,
+  chatAction,
   configRoom,
   createRoom,
   getRoom,
@@ -112,6 +113,15 @@ apiRouter.post('/rooms/:code/restart', (req, res) => {
   if (result.error) return res.status(400).json({ error: result.error });
   touch(req.params.code);
   touch(HOME);
+  res.json({ ok: true });
+});
+
+apiRouter.post('/rooms/:code/chat', (req, res) => {
+  const room = roomOr404(req, res);
+  if (!room) return;
+  const result = chatAction(room, req.body?.playerId, req.body?.text);
+  if (result.error) return res.status(400).json({ error: result.error });
+  touch(room.code);
   res.json({ ok: true });
 });
 

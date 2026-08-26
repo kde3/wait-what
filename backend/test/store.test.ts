@@ -28,6 +28,7 @@ import {
   voteAction,
   wordMatches,
 } from '../lib/store';
+import { CHAOS_CHARACTERS } from '../lib/chaos';
 
 const DEFAULT_CLASSIC_PHRASE = '우주복을 입은 고양이가 라면을 먹는 모습';
 const codes: string[] = [];
@@ -328,6 +329,44 @@ describe('classic', () => {
     timeout(room);
     expect(room.status).toBe('finished');
     expect(room.game.chains[0][1]).toMatchObject({ type: 'image', url: null });
+  });
+});
+
+describe('chaos', () => {
+  it('게임 시작 시 6개 캐릭터 중 정확히 하나를 서버가 선택한다', () => {
+    const { room, ids } = makeRoom(2);
+    configRoom(room, ids[0], { mode: 'chaos' });
+    expect(startGame(room, ids[0])).toEqual({});
+    expect(CHAOS_CHARACTERS.map((character) => character.id)).toContain(room.game.chaosCharacterId);
+    expect(room.game.phase).toBe('reveal');
+    expect(room.game.chaosCharacterId).toBeTruthy();
+  });
+
+  it('reveal 동안 행동을 막고 종료 후 클래식 흐름을 그대로 사용한다', () => {
+    const { room, ids } = makeRoom(2);
+    configRoom(room, ids[0], { mode: 'chaos' });
+    startGame(room, ids[0]);
+    expect(submitAction(room, ids[0], { text: '문장' }).error).toBe('errChaosReveal');
+    expect(canGenerate(room, ids[0]).error).toBe('errChaosReveal');
+    vi.useFakeTimers();
+    vi.setSystemTime(room.game.revealEndsAt + 1);
+    advance(room);
+    expect(room.game.phase).toBe('play');
+    expect(submitAction(room, ids[0], { text: '문장' })).toEqual({});
+  });
+
+  it('새 게임마다 캐릭터를 다시 랜덤 선택한다', () => {
+    const { room, ids } = makeRoom(1);
+    configRoom(room, ids[0], { mode: 'chaos' });
+    const random = vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.999);
+    startGame(room, ids[0]);
+    const first = room.game.chaosCharacterId;
+    backToLobby(room);
+    startGame(room, ids[0]);
+    const second = room.game.chaosCharacterId;
+    expect(first).toBe('404');
+    expect(second).toBe('null');
+    random.mockRestore();
   });
 });
 

@@ -59,6 +59,11 @@ export const teamRoomState: RoomState = {
   you: { nickname: '익명 방장', isHost: true, team: 0, score: 0 },
 };
 
+export const chaosRoomState: RoomState = {
+  ...roomState,
+  mode: 'chaos',
+};
+
 export const classicPhraseState: RoomState = {
   ...roomState,
   status: 'playing',

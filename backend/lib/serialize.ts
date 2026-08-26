@@ -29,21 +29,33 @@ export function buildState(room, playerId) {
 function buildGameView(room, you) {
   const g = room.game;
   switch (room.mode) {
-    case 'classic': {
+    case 'classic':
+    case 'chaos': {
       const type = classicRoundType(g.round);
       const sub = g.submissions.get(you.id) ?? null;
+      const activeChaosCharacterId = room.mode === 'chaos'
+        ? (g.chaosCharacterId === 'null' ? (g.activeChaosByPlayer?.get(you.id) ?? null) : g.chaosCharacterId)
+        : null;
+      const baseRoundSeconds = type === 'image' ? room.options.imageSeconds : room.options.textSeconds;
+      const roundSeconds = activeChaosCharacterId === 'timeout' ? Math.ceil(baseRoundSeconds / 2) : baseRoundSeconds;
       const j = classicChainIndex(room, you.id);
       const chain = g.chains[j] ?? [];
       const prev = chain[chain.length - 1] ?? null;
       let task;
       if (g.round === 0) task = { kind: 'phrase' };
       else if (type === 'image') task = { kind: 'draw', sourceText: prev?.text ?? null };
-      else task = { kind: 'guess', sourceImage: prev?.url ?? null };
+      else task = { kind: 'guess', sourceImage: prev?.url ?? null, chaosCharacterId: prev?.chaosCharacterId ?? null };
       return {
-        kind: 'classic',
+        kind: room.mode,
+        phase: g.phase ?? 'play',
+        chaosCharacterId: room.mode === 'chaos' ? g.chaosCharacterId : null,
+        activeChaosCharacterId,
+        revealRemaining: g.phase === 'reveal' ? remainSec(g.revealEndsAt) : null,
         round: g.round + 1,
         total: g.totalRounds,
-        remaining: remainSec(g.endsAt),
+        remaining: remainSec(room.mode === 'chaos' ? (g.playerEndsAt?.get(you.id) ?? g.endsAt) : g.endsAt),
+        roundSeconds,
+        generateCount: sub?.generateCount ?? 0,
         task,
         submitted: !!sub?.submitted,
         draft: sub ? { text: sub.text ?? null, prompt: sub.prompt ?? null, url: sub.url ?? null } : null,
@@ -64,6 +76,7 @@ function buildGameView(room, you) {
         drawer: nicknameOf(room, g.drawerId),
         youAreDrawer: isDrawer,
         keyword: isDrawer || reveal ? g.keyword : null,
+        liveImage: g.phase === 'draw' ? g.draftUrl ?? null : null,
         image: g.phase === 'guess' ? g.image : reveal ? g.image ?? g.draftUrl : null,
         draft: isDrawer ? { prompt: g.draftPrompt, url: g.draftUrl } : null,
         guesses: g.guesses.slice(-12).map((x) => ({
@@ -166,17 +179,27 @@ function buildGameView(room, you) {
 function buildResults(room, you) {
   const g = room.game;
   if (!g) return null;
+  const withLeftPlayers = (result) => ({ ...result, leftPlayers: g.leftPlayers ?? [] });
   switch (room.mode) {
     case 'classic':
-      return {
-        kind: 'classic',
+    case 'chaos':
+      return withLeftPlayers({
+        kind: room.mode,
+        chaosCharacterId: room.mode === 'chaos' ? g.chaosCharacterId : null,
         albums: g.chains.map((chain, j) => ({
           owner: nicknameOf(room, g.order[j]),
-          entries: chain.map((e) => ({ type: e.type, text: e.text, prompt: e.prompt, url: e.url, author: e.authorNickname })),
+          entries: chain.map((e) => ({
+            type: e.type,
+            text: e.text,
+            prompt: e.prompt,
+            url: e.url,
+            author: e.authorNickname,
+            chaosCharacterId: e.chaosCharacterId ?? null,
+          })),
         })),
-      };
+      });
     case 'speed':
-      return {
+      return withLeftPlayers({
         kind: 'speed',
         teamMode: room.options.teamMode,
         teamScores: room.options.teamMode ? g.teamScores : null,
@@ -184,15 +207,15 @@ function buildResults(room, you) {
           .map((p) => ({ nickname: p.nickname, score: p.score, team: p.team }))
           .sort((a, b) => b.score - a.score),
         history: g.history,
-      };
+      });
     case 'speed_team':
-      return {
+      return withLeftPlayers({
         kind: 'speed_team',
         teamScores: g.teamScores,
         history: g.history,
-      };
+      });
     case 'coop':
-      return {
+      return withLeftPlayers({
         kind: 'coop',
         theme: g.theme,
         scored: room.options.scored,
@@ -207,9 +230,9 @@ function buildResults(room, you) {
             return { nickname: nicknameOf(room, id), url: s?.url ?? null, prompt: s?.prompt ?? null };
           }),
         })),
-      };
+      });
     case 'imposter':
-      return {
+      return withLeftPlayers({
         kind: 'imposter',
         keyword: g.keyword,
         imposter: nicknameOf(room, g.imposterId),
@@ -222,7 +245,7 @@ function buildResults(room, you) {
           target: nicknameOf(room, targetId),
         })),
         entries: g.entries.map((e) => ({ nickname: e.nickname, url: e.url, prompt: e.prompt, skipped: e.skipped })),
-      };
+      });
   }
   return null;
 }

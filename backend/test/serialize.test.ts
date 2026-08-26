@@ -74,6 +74,37 @@ describe('플레이어 id 비노출', () => {
     expectNoIdLeak(room, ids);
   });
 
+  it('chaos 캐릭터는 모든 플레이어에게 동일하게 보이고 id는 노출되지 않는다', () => {
+    const { room, ids } = makeRoom(3);
+    configRoom(room, ids[0], { mode: 'chaos' });
+    startGame(room, ids[0]);
+    const states = ids.map((id) => buildState(room, id));
+    expect(states.map((state) => state.game.chaosCharacterId)).toEqual([
+      room.game.chaosCharacterId,
+      room.game.chaosCharacterId,
+      room.game.chaosCharacterId,
+    ]);
+    expectNoIdLeak(room, ids);
+  });
+
+  it('chaos 캐릭터는 게임 종료 결과까지 유지된다', () => {
+    const { room, ids } = makeRoom();
+    configRoom(room, ids[0], { mode: 'chaos' });
+    startGame(room, ids[0]);
+    const characterId = room.game.chaosCharacterId;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(room.game.revealEndsAt + 1);
+    advance(room);
+    submitAction(room, ids[0], { text: '테스트 문장' });
+    applyDraft(room, ids[0], '테스트 그림', 'data:image/png;base64,test');
+    submitAction(room, ids[0], {});
+
+    expect(room.status).toBe('finished');
+    expect(buildState(room, ids[0]).results.chaosCharacterId).toBe(characterId);
+    expectNoIdLeak(room, ids);
+  });
+
   it('speed 진행/종료 직렬화에 어떤 플레이어 id도 없다', () => {
     const { room, ids } = makeRoom(2);
     configRoom(room, ids[0], { mode: 'speed', options: { rounds: 1 } });
