@@ -129,7 +129,7 @@ apiRouter.post('/rooms/:code/generate', async (req, res) => {
   let url;
   if (aiEnabled()) {
     try {
-      const png = await generateImage(prompt);
+      const png = await generateImage(prompt, room.options.difficulty);
       url = putImage(room.code, png);
     } catch (error) {
       const code = error instanceof AiError ? error.code : 'errAiFailed';

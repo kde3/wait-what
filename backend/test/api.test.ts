@@ -64,7 +64,7 @@ function waitForMessage(ws, predicate, timeoutMs = 3000) {
 }
 
 beforeAll(async () => {
-  for (const key of ['AI_SERVER_URL', 'AI_SERVER_KEY', 'AI_SERVER_SECRET']) {
+  for (const key of ['AI_SERVER_URL', 'AI_SERVER_KEY', 'AI_SERVER_SECRET', 'AI_SERVER_TOKEN']) {
     savedEnv[key] = process.env[key];
     delete process.env[key];
   }

@@ -10,3 +10,7 @@ docs
 *.log
 .env*
 !.env.example
+ai/models
+ai/.hf-cache
+ai/outputs
+ai/.venv

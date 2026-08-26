@@ -3,14 +3,30 @@ const TIMEOUT_MS = 120_000;
 const baseUrl = () => (process.env.AI_SERVER_URL ?? '').replace(/\/+$/, '');
 
 export function aiEnabled() {
-  return !!(baseUrl() && process.env.AI_SERVER_KEY && process.env.AI_SERVER_SECRET);
+  return !!(
+    baseUrl() &&
+    (process.env.AI_SERVER_TOKEN || (process.env.AI_SERVER_KEY && process.env.AI_SERVER_SECRET))
+  );
 }
 
 function accessHeaders() {
+  if (process.env.AI_SERVER_TOKEN) {
+    return { Authorization: `Bearer ${process.env.AI_SERVER_TOKEN}` };
+  }
   return {
     'CF-Access-Client-Id': process.env.AI_SERVER_KEY ?? '',
     'CF-Access-Client-Secret': process.env.AI_SERVER_SECRET ?? '',
   };
+}
+
+const difficultyMap: Record<string, 'easy' | 'normal' | 'hard'> = {
+  normal: 'easy',
+  hard: 'normal',
+  hell: 'hard',
+} as const;
+
+export function aiDifficulty(difficulty: string) {
+  return difficultyMap[difficulty] ?? difficultyMap.normal;
 }
 
 class AiError extends Error {
@@ -44,11 +60,11 @@ async function call(path: string, init: RequestInit) {
   return response;
 }
 
-export async function generateImage(prompt: string) {
+export async function generateImage(prompt: string, difficulty = 'normal') {
   const response = await call('/generate', {
     method: 'POST',
     headers: { ...accessHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, difficulty: aiDifficulty(difficulty) }),
   });
   return Buffer.from(await response.arrayBuffer());
 }

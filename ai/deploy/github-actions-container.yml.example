@@ -2,7 +2,10 @@ name: container
 
 on:
   push:
-    branches: [main]
+    branches: [AI, main]
+    paths:
+      - ai/**
+      - .github/workflows/container.yml
   workflow_dispatch:
 
 permissions:
@@ -22,13 +25,13 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}-ai
           tags: |
             type=raw,value=latest
             type=sha
       - uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./ai
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

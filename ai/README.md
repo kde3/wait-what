@@ -47,7 +47,7 @@ docker run --gpus all --rm \
 
 ## RunPod Pod 배포
 
-1. `deploy/github-actions-container.yml.example`을 `.github/workflows/container.yml`로 옮기면 GitHub Actions가 `ghcr.io/<owner>/<repo>:latest` 이미지를 생성한다. 이 파일을 푸시하려면 GitHub CLI 토큰의 `workflow` scope가 필요하다.
+1. `ai/deploy/github-actions-container.yml.example`을 저장소 루트의 `.github/workflows/container.yml`로 옮기면 GitHub Actions가 `ghcr.io/<owner>/<repo>-ai:latest` 이미지를 생성한다. 이 파일을 푸시하려면 GitHub CLI 토큰의 `workflow` scope가 필요하다.
 2. 저장소와 컨테이너 패키지를 비공개로 유지하면 RunPod에 GHCR registry credential을 등록한다.
 3. Community RTX 4070 Ti, 컨테이너 디스크 20GB, 영구 볼륨 40GB, HTTP 포트 `7860`으로 Pod를 만든다.
 4. `https://<pod-id>-7860.proxy.runpod.net/health/ready`가 200이 될 때까지 기다린다.

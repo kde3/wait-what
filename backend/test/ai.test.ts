@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AiError, aiEnabled, evaluateImage, generateImage } from '../lib/ai';
+import { AiError, aiDifficulty, aiEnabled, evaluateImage, generateImage } from '../lib/ai';
 
 let server;
 let handler;
@@ -19,12 +19,13 @@ function respondJson(payload) {
 beforeAll(async () => {
   server = createServer((req, res) => handler(req, res));
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  for (const key of ['AI_SERVER_URL', 'AI_SERVER_KEY', 'AI_SERVER_SECRET']) {
+  for (const key of ['AI_SERVER_URL', 'AI_SERVER_KEY', 'AI_SERVER_SECRET', 'AI_SERVER_TOKEN']) {
     savedEnv[key] = process.env[key];
   }
   process.env.AI_SERVER_URL = `http://127.0.0.1:${server.address().port}/`;
   process.env.AI_SERVER_KEY = 'test-key';
   process.env.AI_SERVER_SECRET = 'test-secret';
+  delete process.env.AI_SERVER_TOKEN;
 });
 
 afterAll(async () => {
@@ -63,7 +64,40 @@ describe('generateImage', () => {
     expect(seen.url).toBe('/generate');
     expect(seen.headers['cf-access-client-id']).toBe('test-key');
     expect(seen.headers['cf-access-client-secret']).toBe('test-secret');
-    expect(JSON.parse(seen.body)).toEqual({ prompt: '귀여운 고양이' });
+    expect(JSON.parse(seen.body)).toEqual({ prompt: '귀여운 고양이', difficulty: 'easy' });
+  });
+
+  it.each([
+    ['normal', 'easy'],
+    ['hard', 'normal'],
+    ['hell', 'hard'],
+    ['unknown', 'easy'],
+  ])('게임 난이도 %s를 AI 난이도 %s로 변환한다', (input, expected) => {
+    expect(aiDifficulty(input)).toBe(expected);
+  });
+
+  it('직접 Pod를 호출할 때 Bearer 토큰을 전달한다', async () => {
+    const previousKey = process.env.AI_SERVER_KEY;
+    const previousSecret = process.env.AI_SERVER_SECRET;
+    process.env.AI_SERVER_TOKEN = 'worker-token';
+    delete process.env.AI_SERVER_KEY;
+    delete process.env.AI_SERVER_SECRET;
+    let authorization;
+    handler = (req, res) => {
+      authorization = req.headers.authorization;
+      req.resume();
+      req.on('end', () => {
+        res.writeHead(200, { 'Content-Type': 'image/png' });
+        res.end(Buffer.from('png'));
+      });
+    };
+
+    await generateImage('고양이', 'hell');
+
+    delete process.env.AI_SERVER_TOKEN;
+    process.env.AI_SERVER_KEY = previousKey;
+    process.env.AI_SERVER_SECRET = previousSecret;
+    expect(authorization).toBe('Bearer worker-token');
   });
 
   it.each([
