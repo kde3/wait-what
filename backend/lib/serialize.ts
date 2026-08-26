@@ -1,5 +1,5 @@
 // 방 상태 직렬화 — HTTP 폴링 라우트와 웹소켓 브로드캐스트가 함께 쓴다.
-import { isTeamGame, classicRoundType, classicChainIndex, nicknameOf, imposterVoters, MAX_PLAYERS } from './store';
+import { isTeamGame, classicRoundType, classicChainIndex, nicknameOf, imposterVoters, MAX_PLAYERS, MIN_PLAYERS } from './store';
 
 const remainSec = (endsAt) => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 
@@ -16,6 +16,7 @@ export function buildState(room, playerId) {
     options: room.options,
     teamGame: isTeamGame(room),
     maxPlayers: MAX_PLAYERS,
+    minPlayers: MIN_PLAYERS[room.mode] ?? 1,
     players: room.players.map((p) => ({ nickname: p.nickname, isHost: p.isHost, team: p.team, score: p.score, staying: !!p.staying, you: p.id === playerId })),
     you: you ? { nickname: you.nickname, isHost: you.isHost, team: you.team, score: you.score, staying: !!you.staying } : null,
   };
@@ -151,6 +152,7 @@ function buildGameView(room, you) {
           left: !room.players.some((p) => p.id === id),
           you: id === you.id,
         })),
+        chat: room.chat.map((m) => ({ nickname: m.nickname, text: m.text, you: m.playerId === you.id })),
         yourVote: yourVoteId ? g.order.indexOf(yourVoteId) : null,
         votedCount: voters.filter((p) => g.votes.has(p.id)).length,
         voterTotal: voters.length,

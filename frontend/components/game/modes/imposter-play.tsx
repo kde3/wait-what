@@ -8,6 +8,7 @@ import { sfx } from '../../../lib/sound';
 import { useCountdown } from '../../../hooks/use-countdown';
 import { useDraft } from '../../../hooks/use-draft';
 import { useGenerate } from '../../../hooks/use-generate';
+import { ChatPanel } from '../chat-panel';
 import { ImposterVotePanel } from '../imposter-vote-panel';
 import { PromptPanel } from '../prompt-panel';
 import { TimerBar } from '../timer-bar';
@@ -34,6 +35,10 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
 
   async function sendVote(index) {
     if (await api('vote', { playerId, target: index })) sfx.submit();
+  }
+
+  async function sendChat(text) {
+    await api('chat', { playerId, text });
   }
 
   return (
@@ -139,6 +144,8 @@ export function ImposterPlay({ state, playerId, api, busy, error }) {
           )}
         </div>
       )}
+
+      <ChatPanel messages={g.chat} busy={busy} onSend={sendChat} />
     </>
   );
 }
