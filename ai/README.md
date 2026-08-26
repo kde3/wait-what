@@ -20,6 +20,8 @@ FLUX.2 Klein 4B로 512×512 파티게임 낙서를 생성하고 OpenAI 비전 �
 | `OPENAI_API_KEY` | 비어 있음 | `/evaluate` 사용 시 필요 |
 | `OPENAI_EVALUATOR_MODEL` | `gpt-5.6-luna` | 평가 모델 |
 | `ENABLE_DEMO` | `1` | `/demo` Gradio UI 활성화 |
+| `GENERATION_BATCH_MAX_SIZE` | `1` | 짧은 요청 버스트를 묶을 최대 GPU 배치 크기(1~4) |
+| `GENERATION_BATCH_WAIT_MS` | `35` | 첫 요청 후 추가 요청을 모으는 최대 시간(ms) |
 
 ## 로컬 실행
 
@@ -49,7 +51,7 @@ docker run --gpus all --rm \
 
 1. `ai/deploy/github-actions-container.yml.example`을 저장소 루트의 `.github/workflows/container.yml`로 옮기면 GitHub Actions가 `ghcr.io/<owner>/<repo>-ai:latest` 이미지를 생성한다. 이 파일을 푸시하려면 GitHub CLI 토큰의 `workflow` scope가 필요하다.
 2. 저장소와 컨테이너 패키지를 비공개로 유지하면 RunPod에 GHCR registry credential을 등록한다.
-3. Community RTX 4070 Ti, 컨테이너 디스크 20GB, 영구 볼륨 40GB, HTTP 포트 `7860`으로 Pod를 만든다.
+3. Community RTX 4090, 컨테이너 디스크 20GB, 영구 볼륨 40GB, HTTP 포트 `7860`으로 Pod를 만든다. 컨테이너 기본값은 최대 4건, 35ms 마이크로 배치다.
 4. `https://<pod-id>-7860.proxy.runpod.net/health/ready`가 200이 될 때까지 기다린다.
 5. `scripts/benchmark_api.py`로 실제 생성속도와 안정성을 측정한다.
 

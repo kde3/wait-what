@@ -8,13 +8,14 @@ import base64
 import io
 import logging
 import os
+import queue
 import secrets
 import threading
 import time
 from contextlib import asynccontextmanager, contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, AsyncIterator, Iterator
+from typing import Annotated, AsyncIterator, Callable, Iterator
 
 import torch
 from diffusers.utils import logging as diffusers_logging
@@ -79,6 +80,14 @@ MAX_INPUT_IMAGE_PIXELS = 25_000_000
 INFERENCE_STEPS = 4
 BASE_SEED = 0
 QUEUE_MAX_SIZE = 32
+GENERATION_BATCH_MAX_SIZE = max(
+    1,
+    min(int(os.getenv("GENERATION_BATCH_MAX_SIZE", "1")), 4),
+)
+GENERATION_BATCH_WAIT_SECONDS = max(
+    0.0,
+    float(os.getenv("GENERATION_BATCH_WAIT_MS", "35")) / 1000,
+)
 TORCH_COMPILE_MODE = "max-autotune-no-cudagraphs"
 REDRAW_REFERENCE_LATENT_SCALE = 0.005
 
@@ -224,6 +233,7 @@ MODEL_LOCK = threading.Lock()
 REQUEST_SLOTS = threading.BoundedSemaphore(QUEUE_MAX_SIZE)
 PIPE: Flux2KleinPipeline | None = None
 OPENAI_CLIENT: OpenAI | None = None
+GENERATION_BATCHER: GenerationBatcher | None = None
 LOGGER = logging.getLogger("uvicorn.error")
 
 
@@ -344,32 +354,51 @@ def load_openai_client() -> OpenAI | None:
 
 @torch.inference_mode()
 def warmup_pipeline(pipeline: Flux2KleinPipeline) -> None:
-    """Compile and cache the fixed-size generation and redraw graphs."""
-    LOGGER.info("Warming up the 512x512 stage 1 and redraw graphs...")
+    """Compile and cache fixed-size generation graphs for serving batch sizes."""
+    warmup_sizes = [1]
+    if GENERATION_BATCH_MAX_SIZE >= 2:
+        warmup_sizes.append(2)
+    if GENERATION_BATCH_MAX_SIZE >= 4:
+        warmup_sizes.append(4)
+    LOGGER.info(
+        "Warming up the 512x512 stage 1 and redraw graphs (batches=%s)...",
+        warmup_sizes,
+    )
     started = time.perf_counter()
 
-    stage_one = run_image_pipeline(
-        pipeline,
-        prompt="A cat holds a small umbrella.",
-        width=IMAGE_SIZE,
-        height=IMAGE_SIZE,
-        num_inference_steps=INFERENCE_STEPS,
-        guidance_scale=1.0,
-        generator=torch.Generator(device="cuda").manual_seed(BASE_SEED),
-    )
-    with scaled_reference_conditioning(pipeline, REDRAW_REFERENCE_LATENT_SCALE):
-        run_image_pipeline(
+    for batch_size in warmup_sizes:
+        prompts = ["A cat holds a small umbrella."] * batch_size
+        stage_one = run_image_pipeline_batch(
             pipeline,
-            image=stage_one,
-            prompt=compose_redraw_prompt(
-                "A cat holds a small umbrella.",
-                DEFAULT_DIFFICULTY,
-            ),
+            prompt=prompts,
             width=IMAGE_SIZE,
             height=IMAGE_SIZE,
-            num_inference_steps=REDRAW_INFERENCE_STEPS[DEFAULT_DIFFICULTY],
+            num_inference_steps=INFERENCE_STEPS,
             guidance_scale=1.0,
-            generator=torch.Generator(device="cuda").manual_seed(BASE_SEED),
+            generator=seeded_generators(batch_size),
+        )
+        with aligned_batched_reference_conditioning(
+            pipeline,
+            REDRAW_REFERENCE_LATENT_SCALE,
+        ):
+            run_image_pipeline_batch(
+                pipeline,
+                image=stage_one,
+                prompt=[
+                    compose_redraw_prompt(prompt, DEFAULT_DIFFICULTY)
+                    for prompt in prompts
+                ],
+                width=IMAGE_SIZE,
+                height=IMAGE_SIZE,
+                num_inference_steps=REDRAW_INFERENCE_STEPS[DEFAULT_DIFFICULTY],
+                guidance_scale=1.0,
+                generator=seeded_generators(batch_size),
+            )
+        torch.cuda.synchronize()
+        LOGGER.info(
+            "Warm-up batch %d complete (%.2fs elapsed)",
+            batch_size,
+            time.perf_counter() - started,
         )
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats()
@@ -508,34 +537,164 @@ def evaluate_image(image: Image.Image, target: str) -> EvaluationResponse:
     return result
 
 
-def run_image_pipeline(
+def run_image_pipeline_batch(
     pipeline: Flux2KleinPipeline,
     **kwargs: object,
-) -> Image.Image:
-    """Run FLUX.2 Klein and return the first generated image."""
-    return pipeline(**kwargs).images[0]
+) -> list[Image.Image]:
+    """Run FLUX.2 Klein and return every image in the generated batch."""
+    return list(pipeline(**kwargs).images)
 
 
 @contextmanager
-def scaled_reference_conditioning(
+def aligned_batched_reference_conditioning(
     pipeline: Flux2KleinPipeline,
     scale: float,
 ) -> Iterator[None]:
-    """Temporarily weaken stage-two latent guidance without resizing its input."""
+    """Condition each batched redraw prompt on its matching source image."""
     original_prepare_image_latents = pipeline.prepare_image_latents
 
-    def prepare_scaled_image_latents(
-        *args: object,
-        **kwargs: object,
+    def prepare_aligned_image_latents(
+        images: list[torch.Tensor],
+        batch_size: int,
+        generator: torch.Generator | list[torch.Generator],
+        device: torch.device,
+        dtype: torch.dtype,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        image_latents, image_ids = original_prepare_image_latents(*args, **kwargs)
-        return image_latents * scale, image_ids
+        if len(images) != batch_size:
+            raise ValueError(
+                "Batched redraw requires exactly one reference image per prompt."
+            )
 
-    pipeline.prepare_image_latents = prepare_scaled_image_latents  # type: ignore[method-assign]
+        encoded_latents: list[torch.Tensor] = []
+        for index, image in enumerate(images):
+            image_generator = (
+                generator[index] if isinstance(generator, list) else generator
+            )
+            encoded_latents.append(
+                pipeline._encode_vae_image(  # noqa: SLF001
+                    image=image.to(device=device, dtype=dtype),
+                    generator=image_generator,
+                )
+            )
+
+        packed_latents = torch.cat(
+            [pipeline._pack_latents(latent) for latent in encoded_latents],  # noqa: SLF001
+            dim=0,
+        )
+        image_ids = pipeline._prepare_image_ids([encoded_latents[0]])  # noqa: SLF001
+        image_ids = image_ids.repeat(batch_size, 1, 1).to(device)
+        return packed_latents * scale, image_ids
+
+    pipeline.prepare_image_latents = prepare_aligned_image_latents  # type: ignore[method-assign]
     try:
         yield
     finally:
         pipeline.prepare_image_latents = original_prepare_image_latents  # type: ignore[method-assign]
+
+
+def seeded_generators(batch_size: int) -> list[torch.Generator]:
+    """Preserve per-request determinism while generating a shared GPU batch."""
+    return [
+        torch.Generator(device="cuda").manual_seed(BASE_SEED)
+        for _ in range(batch_size)
+    ]
+
+
+@torch.inference_mode()
+def generate_doodle_batch(
+    requests: list[tuple[str, DoodleDifficulty | str]],
+) -> list[tuple[str, Image.Image, str]]:
+    """Generate multiple independent two-stage doodles with shared model passes."""
+    if not requests:
+        return []
+
+    request_started = time.perf_counter()
+    model_prompts = [
+        normalize_prompt(prompt, label="사용자 입력 프롬프트")
+        for prompt, _ in requests
+    ]
+    difficulties = [resolve_difficulty(difficulty) for _, difficulty in requests]
+    pipeline = get_pipeline()
+    batch_size = len(requests)
+
+    with MODEL_LOCK:
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.synchronize()
+        stage_one_started = time.perf_counter()
+        stage_one_images = run_image_pipeline_batch(
+            pipeline,
+            prompt=model_prompts,
+            width=IMAGE_SIZE,
+            height=IMAGE_SIZE,
+            num_inference_steps=INFERENCE_STEPS,
+            guidance_scale=1.0,
+            generator=seeded_generators(batch_size),
+        )
+        torch.cuda.synchronize()
+        stage_one_elapsed = time.perf_counter() - stage_one_started
+
+        redraw_started = time.perf_counter()
+        doodles: list[Image.Image | None] = [None] * batch_size
+        for difficulty in DoodleDifficulty:
+            indices = [
+                index
+                for index, resolved in enumerate(difficulties)
+                if resolved is difficulty
+            ]
+            if not indices:
+                continue
+
+            redraw_prompts = [
+                compose_redraw_prompt(model_prompts[index], difficulty)
+                for index in indices
+            ]
+            source_images = [stage_one_images[index] for index in indices]
+            with aligned_batched_reference_conditioning(
+                pipeline,
+                REDRAW_REFERENCE_LATENT_SCALE,
+            ):
+                redraw_results = run_image_pipeline_batch(
+                    pipeline,
+                    image=source_images,
+                    prompt=redraw_prompts,
+                    width=IMAGE_SIZE,
+                    height=IMAGE_SIZE,
+                    num_inference_steps=REDRAW_INFERENCE_STEPS[difficulty],
+                    guidance_scale=1.0,
+                    generator=seeded_generators(len(indices)),
+                )
+            for index, doodle in zip(indices, redraw_results, strict=True):
+                doodles[index] = doodle
+
+        torch.cuda.synchronize()
+        redraw_elapsed = time.perf_counter() - redraw_started
+        peak_vram = gib(torch.cuda.max_memory_reserved())
+
+    total_elapsed = time.perf_counter() - request_started
+    LOGGER.info(
+        "Generation batch complete · size=%d · total=%.2fs · stage1=%.2fs · "
+        "redraw=%.2fs · peak=%.2fGiB",
+        batch_size,
+        total_elapsed,
+        stage_one_elapsed,
+        redraw_elapsed,
+        peak_vram,
+    )
+    results: list[tuple[str, Image.Image, str]] = []
+    for index, doodle in enumerate(doodles):
+        if doodle is None:
+            raise RuntimeError("A batched redraw result is missing.")
+        difficulty = difficulties[index]
+        redraw_steps = REDRAW_INFERENCE_STEPS[difficulty]
+        result_status = (
+            f"완료 · batch {batch_size} · 총 {total_elapsed:.2f}초 "
+            f"(1차 장면 {stage_one_elapsed:.2f}초 + "
+            f"2차 낙서 {redraw_elapsed:.2f}초) "
+            f"· 난이도 {difficulty.value} ({redraw_steps}스텝) "
+            f"· peak VRAM {peak_vram:.2f} GiB"
+        )
+        results.append((model_prompts[index], doodle, result_status))
+    return results
 
 
 @torch.inference_mode()
@@ -545,59 +704,134 @@ def generate_doodle(
     difficulty: DoodleDifficulty | str = DEFAULT_DIFFICULTY,
 ) -> tuple[str, Image.Image, str]:
     """Create a scene from the original prompt, then redraw it by difficulty."""
-    request_started = time.perf_counter()
-    model_prompt = normalize_prompt(user_prompt, label="사용자 입력 프롬프트")
-    resolved_difficulty = resolve_difficulty(difficulty)
-    redraw_steps = REDRAW_INFERENCE_STEPS[resolved_difficulty]
-    pipeline = get_pipeline()
-    redraw_prompt = compose_redraw_prompt(model_prompt, resolved_difficulty)
+    return generate_doodle_batch([(user_prompt, difficulty)])[0]
 
-    with MODEL_LOCK:
-        torch.cuda.reset_peak_memory_stats()
-        torch.cuda.synchronize()
-        stage_one_started = time.perf_counter()
 
-        stage_one_kwargs: dict[str, object] = {
-            "prompt": model_prompt,
-            "width": IMAGE_SIZE,
-            "height": IMAGE_SIZE,
-            "num_inference_steps": INFERENCE_STEPS,
-            "guidance_scale": 1.0,
-            "generator": torch.Generator(device="cuda").manual_seed(BASE_SEED),
-        }
-        stage_one = run_image_pipeline(pipeline, **stage_one_kwargs)
-        torch.cuda.synchronize()
-        stage_one_elapsed = time.perf_counter() - stage_one_started
+class GenerationJob:
+    """One synchronous API request waiting for the GPU batch worker."""
 
-        redraw_started = time.perf_counter()
-        with scaled_reference_conditioning(
-            pipeline,
-            REDRAW_REFERENCE_LATENT_SCALE,
-        ):
-            doodle = run_image_pipeline(
-                pipeline,
-                image=stage_one,
-                prompt=redraw_prompt,
-                width=IMAGE_SIZE,
-                height=IMAGE_SIZE,
-                num_inference_steps=redraw_steps,
-                guidance_scale=1.0,
-                generator=torch.Generator(device="cuda").manual_seed(BASE_SEED),
+    def __init__(self, prompt: str, difficulty: DoodleDifficulty) -> None:
+        self.prompt = prompt
+        self.difficulty = difficulty
+        self.completed = threading.Event()
+        self.result: tuple[str, Image.Image, str] | None = None
+        self.error: Exception | None = None
+
+
+GenerationRunner = Callable[
+    [list[tuple[str, DoodleDifficulty | str]]],
+    list[tuple[str, Image.Image, str]],
+]
+
+
+class GenerationBatcher:
+    """Collect a short burst of API requests into one shared GPU batch."""
+
+    _STOP = object()
+
+    def __init__(
+        self,
+        *,
+        max_batch_size: int,
+        wait_seconds: float,
+        runner: GenerationRunner = generate_doodle_batch,
+    ) -> None:
+        self.max_batch_size = max(1, max_batch_size)
+        self.wait_seconds = max(0.0, wait_seconds)
+        self.runner = runner
+        self.jobs: queue.Queue[GenerationJob | object] = queue.Queue(
+            maxsize=QUEUE_MAX_SIZE
+        )
+        self.thread = threading.Thread(
+            target=self._worker,
+            name="generation-batcher",
+            daemon=True,
+        )
+        self.thread.start()
+
+    def submit(
+        self,
+        prompt: str,
+        difficulty: DoodleDifficulty,
+    ) -> tuple[str, Image.Image, str]:
+        job = GenerationJob(prompt, difficulty)
+        try:
+            self.jobs.put_nowait(job)
+        except queue.Full as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The generation queue is full. Try again later.",
+            ) from exc
+
+        job.completed.wait()
+        if job.error is not None:
+            raise job.error
+        if job.result is None:
+            raise RuntimeError("The generation worker returned no result.")
+        return job.result
+
+    def close(self) -> None:
+        self.jobs.put(self._STOP)
+        self.thread.join()
+
+    def _collect_batch(self, first: GenerationJob) -> tuple[list[GenerationJob], bool]:
+        batch = [first]
+        stop_after_batch = False
+        deadline = time.monotonic() + self.wait_seconds
+        while len(batch) < self.max_batch_size:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                item = self.jobs.get(timeout=remaining)
+            except queue.Empty:
+                break
+            if item is self._STOP:
+                stop_after_batch = True
+                break
+            batch.append(item)  # type: ignore[arg-type]
+        return batch, stop_after_batch
+
+    def _run_batch(self, batch: list[GenerationJob]) -> None:
+        try:
+            results = self.runner(
+                [(job.prompt, job.difficulty) for job in batch]
             )
+            if len(results) != len(batch):
+                raise RuntimeError("The generation batch result count is invalid.")
+        except torch.OutOfMemoryError as exc:
+            torch.cuda.empty_cache()
+            if len(batch) == 1:
+                batch[0].error = exc
+                batch[0].completed.set()
+                return
+            LOGGER.warning(
+                "Generation batch size %d exceeded VRAM; retrying as smaller batches",
+                len(batch),
+            )
+            midpoint = len(batch) // 2
+            self._run_batch(batch[:midpoint])
+            self._run_batch(batch[midpoint:])
+            return
+        except Exception as exc:  # noqa: BLE001
+            for job in batch:
+                job.error = exc
+                job.completed.set()
+            return
 
-        torch.cuda.synchronize()
-        redraw_elapsed = time.perf_counter() - redraw_started
-        peak_vram = gib(torch.cuda.max_memory_reserved())
+        for job, result in zip(batch, results, strict=True):
+            job.result = result
+            job.completed.set()
 
-    total_elapsed = time.perf_counter() - request_started
-    result_status = (
-        f"완료 · 총 {total_elapsed:.2f}초 "
-        f"(1차 장면 {stage_one_elapsed:.2f}초 + "
-        f"2차 낙서 {redraw_elapsed:.2f}초) "
-        f"· 난이도 {resolved_difficulty.value} ({redraw_steps}스텝) "
-        f"· peak VRAM {peak_vram:.2f} GiB"
-    )
-    return model_prompt, doodle, result_status
+    def _worker(self) -> None:
+        while True:
+            item = self.jobs.get()
+            if item is self._STOP:
+                return
+            batch, stop_after_batch = self._collect_batch(item)  # type: ignore[arg-type]
+            self._run_batch(batch)
+            if stop_after_batch:
+                return
 
 
 def load_uploaded_image(upload: UploadFile) -> Image.Image:
@@ -685,12 +919,30 @@ def png_response(image: Image.Image) -> Response:
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     """Load one model copy before accepting traffic."""
+    global GENERATION_BATCHER
     global OPENAI_CLIENT
     global PIPE
 
     PIPE = load_pipeline()
     OPENAI_CLIENT = load_openai_client()
-    yield
+    GENERATION_BATCHER = GenerationBatcher(
+        max_batch_size=GENERATION_BATCH_MAX_SIZE,
+        wait_seconds=(
+            GENERATION_BATCH_WAIT_SECONDS
+            if GENERATION_BATCH_MAX_SIZE > 1
+            else 0.0
+        ),
+    )
+    LOGGER.info(
+        "Generation batcher ready (max_batch=%d, wait=%.0fms)",
+        GENERATION_BATCH_MAX_SIZE,
+        GENERATION_BATCH_WAIT_SECONDS * 1000,
+    )
+    try:
+        yield
+    finally:
+        GENERATION_BATCHER.close()
+        GENERATION_BATCHER = None
 
 
 app = FastAPI(
@@ -709,7 +961,7 @@ def health_live() -> dict[str, str]:
 @app.get("/health/ready", include_in_schema=False)
 def health_ready() -> dict[str, str]:
     """Confirm that the GPU model has finished loading and warming up."""
-    if PIPE is None:
+    if PIPE is None or GENERATION_BATCHER is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Model pipeline is not ready.",
@@ -732,9 +984,14 @@ def health_ready() -> dict[str, str]:
 def generate(request: GenerateRequest) -> Response:
     """Generate and return the final doodle as a PNG."""
     with generation_request():
-        _, doodle, _ = generate_doodle(
-            request.prompt,
-            difficulty=request.difficulty,
+        if GENERATION_BATCHER is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The generation worker is not ready.",
+            )
+        _, doodle, _ = GENERATION_BATCHER.submit(
+            normalize_prompt(request.prompt, label="사용자 입력 프롬프트"),
+            resolve_difficulty(request.difficulty),
         )
     return png_response(doodle)
 

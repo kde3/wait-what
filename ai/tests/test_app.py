@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import concurrent.futures
+import threading
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -147,6 +149,124 @@ class ApiContractTests(unittest.TestCase):
                 app.require_internal_api_key("Bearer wrong-secret")
 
         self.assertEqual(raised.exception.status_code, 401)
+
+
+class GenerationBatcherTests(unittest.TestCase):
+    def test_batched_redraw_keeps_one_reference_per_prompt(self) -> None:
+        class FakePipeline:
+            def prepare_image_latents(self, *_: object, **__: object) -> None:
+                return None
+
+            def _encode_vae_image(
+                self,
+                image: app.torch.Tensor,
+                generator: object,
+            ) -> app.torch.Tensor:
+                del generator
+                return image
+
+            def _pack_latents(
+                self,
+                latents: app.torch.Tensor,
+            ) -> app.torch.Tensor:
+                return latents.flatten(2).transpose(1, 2)
+
+            def _prepare_image_ids(
+                self,
+                latents: list[app.torch.Tensor],
+            ) -> app.torch.Tensor:
+                sequence_length = latents[0].shape[-2] * latents[0].shape[-1]
+                return app.torch.zeros((1, sequence_length, 4))
+
+        pipeline = FakePipeline()
+        references = [
+            app.torch.full((1, 2, 2, 2), 1.0),
+            app.torch.full((1, 2, 2, 2), 2.0),
+        ]
+        with app.aligned_batched_reference_conditioning(pipeline, 0.5):
+            latents, image_ids = pipeline.prepare_image_latents(
+                references,
+                batch_size=2,
+                generator=[object(), object()],
+                device=app.torch.device("cpu"),
+                dtype=app.torch.float32,
+            )
+
+        self.assertEqual(tuple(latents.shape), (2, 4, 2))
+        self.assertTrue(app.torch.all(latents[0] == 0.5))
+        self.assertTrue(app.torch.all(latents[1] == 1.0))
+        self.assertEqual(tuple(image_ids.shape), (2, 4, 4))
+
+    def test_collects_four_simultaneous_requests_into_one_batch(self) -> None:
+        observed_batch_sizes: list[int] = []
+        barrier = threading.Barrier(5)
+
+        def runner(
+            requests: list[tuple[str, app.DoodleDifficulty | str]],
+        ) -> list[tuple[str, Image.Image, str]]:
+            observed_batch_sizes.append(len(requests))
+            return [
+                (prompt, Image.new("RGB", (8, 8), "white"), "ok")
+                for prompt, _ in requests
+            ]
+
+        batcher = app.GenerationBatcher(
+            max_batch_size=4,
+            wait_seconds=0.1,
+            runner=runner,
+        )
+
+        def submit(index: int) -> tuple[str, Image.Image, str]:
+            barrier.wait()
+            return batcher.submit(
+                f"prompt-{index}",
+                app.DoodleDifficulty.NORMAL,
+            )
+
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                futures = [executor.submit(submit, index) for index in range(4)]
+                barrier.wait()
+                results = [future.result(timeout=2) for future in futures]
+        finally:
+            batcher.close()
+
+        self.assertEqual(observed_batch_sizes, [4])
+        self.assertEqual(
+            {result[0] for result in results},
+            {"prompt-0", "prompt-1", "prompt-2", "prompt-3"},
+        )
+
+    def test_retries_an_oom_batch_as_two_smaller_batches(self) -> None:
+        observed_batch_sizes: list[int] = []
+
+        def runner(
+            requests: list[tuple[str, app.DoodleDifficulty | str]],
+        ) -> list[tuple[str, Image.Image, str]]:
+            observed_batch_sizes.append(len(requests))
+            if len(requests) == 4:
+                raise app.torch.OutOfMemoryError("test OOM")
+            return [
+                (prompt, Image.new("RGB", (8, 8), "white"), "ok")
+                for prompt, _ in requests
+            ]
+
+        jobs = [
+            app.GenerationJob(f"prompt-{index}", app.DoodleDifficulty.NORMAL)
+            for index in range(4)
+        ]
+        batcher = app.GenerationBatcher(
+            max_batch_size=4,
+            wait_seconds=0,
+            runner=runner,
+        )
+        try:
+            batcher._run_batch(jobs)
+        finally:
+            batcher.close()
+
+        self.assertEqual(observed_batch_sizes, [4, 2, 2])
+        self.assertTrue(all(job.result is not None for job in jobs))
 
 if __name__ == "__main__":
     unittest.main()
